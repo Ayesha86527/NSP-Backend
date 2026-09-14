@@ -1,8 +1,10 @@
 const express = require('express');
+const authController = require('./auth.controller');
+
 const router = express.Router();
 
-router.post('/login', (req, res) => {
-  res.status(501).json({ message: 'Not implemented yet' });
-});
+router.post('/login', authController.login);
+
+router.post('/verify-mfa', authController.verifyMfa);
 
 module.exports = router;
