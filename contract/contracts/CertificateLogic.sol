@@ -1,32 +1,57 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.34;
 
-import {Counter} from "./Counter.sol";
-import {Test} from "forge-std/Test.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "./CertificateStorage.sol";
 
-// Solidity tests are compatible with foundry, so they
-// use the same syntax and offer the same functionality.
 
-contract CounterTest is Test {
-  Counter counter;
+contract CertificateLogic is Ownable {
 
-  function setUp() public {
-    counter = new Counter();
-  }
+    CertificateStorage public certStorage;
 
-  function test_InitialValue() public view {
-    require(counter.x() == 0, "Initial value should be 0");
-  }
+    event CertificateMinted(bytes32 indexed certId, bytes32 dataHash);
+    event CertificateRevoked(bytes32 indexed certId);
+    event StorageAddressUpdated(address indexed oldStorage, address indexed newStorage);
 
-  function testFuzz_Inc(uint8 x) public {
-    for (uint8 i = 0; i < x; i++) {
-      counter.inc();
+    error ZeroAddress();
+
+    constructor(address _storageAddress, address initialOwner) Ownable(initialOwner) {
+        if (_storageAddress == address(0)) revert ZeroAddress();
+        certStorage = CertificateStorage(_storageAddress);
     }
-    require(counter.x() == x, "Value after calling inc x times should be x");
-  }
 
-  function test_IncByZero() public {
-    vm.expectRevert();
-    counter.incBy(0);
-  }
+    function mintCertificate(
+        bytes32 certId,
+        bytes32 dataHash
+    ) external onlyOwner {
+        certStorage.setCertificate(certId, dataHash);
+        emit CertificateMinted(certId, dataHash);
+    }
+
+    function revokeCertificate(bytes32 certId) external onlyOwner {
+        certStorage.revokeCertificate(certId);
+        emit CertificateRevoked(certId);
+    }
+
+    function verifyCertificate(bytes32 certId) external view returns (
+        bool isValid,
+        uint256 issuedAt,
+        bytes32 dataHash
+    ) {
+        CertificateStorage.Certificate memory cert = certStorage.getCertificate(certId);
+
+        if (cert.issuedAt == 0 || cert.isRevoked) {
+            return (false, 0, bytes32(0));
+        }
+
+        return (true, cert.issuedAt, cert.dataHash);
+    }
+
+ 
+    function updateStorageAddress(address _newStorageAddress) external onlyOwner {
+        if (_newStorageAddress == address(0)) revert ZeroAddress();
+        address old = address(certStorage);
+        certStorage = CertificateStorage(_newStorageAddress);
+        emit StorageAddressUpdated(old, _newStorageAddress);
+    }
 }
