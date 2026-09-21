@@ -1,14 +1,35 @@
-const { tradeTester } = require('./auth.model');
+const crypto = require('crypto');
+const bcrypt = require('bcrypt');
+const { verify } = require('otplib');
 
-const login = (email, password) => {
-    if (email !== tradeTester.email || password !== tradeTester.password) {
+const {
+    findUserByEmail,
+    findUserForMfa
+} = require('./auth.model');
+
+const login = async (email, password) => {
+    const user = await findUserByEmail(email);
+
+    if (!user) {
         return {
             success: false,
             message: 'Invalid email or password'
         };
     }
 
-    if (tradeTester.role !== 'TRADE_TESTER') {
+    const passwordMatches = await bcrypt.compare(
+        password,
+        user.password_hash
+    );
+
+    if (!passwordMatches) {
+        return {
+            success: false,
+            message: 'Invalid email or password'
+        };
+    }
+
+    if (user.role !== 'TRADE_TESTER') {
         return {
             success: false,
             message: 'Access denied'
@@ -20,23 +41,82 @@ const login = (email, password) => {
         message: 'Password verified. MFA verification required.',
         mfaRequired: true,
         user: {
-            id: tradeTester.id,
-            name: tradeTester.name,
-            email: tradeTester.email,
-            role: tradeTester.role
+            id: user.user_id,
+            email: user.email,
+            role: user.role,
+            hubLocationId: user.hub_location_id
         }
     };
 };
 
-const verifyMfa = (email, mfaCode) => {
-    if (email !== tradeTester.email) {
+const decryptMfaSecret = (encryptedSecret) => {
+    const parts = encryptedSecret.split(':');
+
+    if (parts.length !== 3) {
+        throw new Error('Invalid encrypted MFA secret format');
+    }
+
+    const [ivHex, authTagHex, encryptedHex] = parts;
+
+    const key = Buffer.from(
+        process.env.MFA_ENCRYPTION_KEY,
+        'hex'
+    );
+
+    if (key.length !== 32) {
+        throw new Error(
+            'MFA_ENCRYPTION_KEY must be exactly 32 bytes'
+        );
+    }
+
+    const iv = Buffer.from(ivHex, 'hex');
+    const authTag = Buffer.from(authTagHex, 'hex');
+    const encrypted = Buffer.from(encryptedHex, 'hex');
+
+    const decipher = crypto.createDecipheriv(
+        'aes-256-gcm',
+        key,
+        iv
+    );
+
+    decipher.setAuthTag(authTag);
+
+    let decrypted = decipher.update(
+        encrypted,
+        undefined,
+        'utf8'
+    );
+
+    decrypted += decipher.final('utf8');
+
+    return decrypted;
+};
+
+const verifyMfa = async (email, mfaCode) => {
+    const user = await findUserForMfa(email);
+
+    if (!user) {
         return {
             success: false,
             message: 'Invalid user'
         };
     }
 
-    if (mfaCode !== '123456') {
+    if (!user.is_mfa_active) {
+        return {
+            success: false,
+            message: 'MFA is not active'
+        };
+    }
+
+    const mfaSecret = decryptMfaSecret(user.mfa_secret);
+
+    const isValid = await verify({
+        secret: mfaSecret,
+        token: mfaCode
+    });
+
+    if (!isValid) {
         return {
             success: false,
             message: 'Invalid MFA code'
@@ -47,10 +127,9 @@ const verifyMfa = (email, mfaCode) => {
         success: true,
         message: 'Login successful',
         user: {
-            id: tradeTester.id,
-            name: tradeTester.name,
-            email: tradeTester.email,
-            role: tradeTester.role
+            id: user.user_id,
+            email: user.email,
+            role: user.role
         }
     };
 };
