@@ -1,64 +1,78 @@
 const jwt = require('jsonwebtoken');
 
-const {
-    publicKey
-} = require('../../config/jwt');
-
-
 const authenticate = (req, res, next) => {
     try {
-        const authHeader = req.headers.authorization;
+        const authorization = req.headers.authorization;
 
-        if (
-            !authHeader ||
-            !authHeader.startsWith('Bearer ')
-        ) {
+        if (!authorization) {
             return res.status(401).json({
                 success: false,
-                message: 'Authorization token is required'
+                message: 'Authentication required'
             });
         }
 
-        const token = authHeader.substring(7);
+        const parts = authorization.split(' ');
+
+        if (
+            parts.length !== 2 ||
+            parts[0] !== 'Bearer'
+        ) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid authorization header'
+            });
+        }
+
+        const token = parts[1];
+
+        if (!process.env.JWT_SECRET) {
+            throw new Error(
+                'JWT_SECRET is not configured'
+            );
+        }
 
         const decoded = jwt.verify(
             token,
-            publicKey,
+            process.env.JWT_SECRET,
             {
-                algorithms: ['RS256']
+                algorithms: ['HS256']
             }
         );
 
         req.user = {
-            id: decoded.sub,
+            userId: decoded.sub,
             email: decoded.email,
-            role: decoded.role
+            role: decoded.role,
+            hubLocationId: decoded.hubLocationId
         };
 
         next();
     } catch (error) {
-        return res.status(401).json({
-            success: false,
-            message: 'Invalid or expired access token'
-        });
+        if (
+            error.name === 'TokenExpiredError'
+        ) {
+            return res.status(401).json({
+                success: false,
+                message: 'Access token expired'
+            });
+        }
+
+        if (
+            error.name === 'JsonWebTokenError'
+        ) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid access token'
+            });
+        }
+
+        next(error);
     }
 };
 
-
-/*
- * ROLE AUTHORIZATION
- *
- * Usage:
- * router.get(
- *     '/example',
- *     authenticate,
- *     requireRole('TRADE_TESTER'),
- *     controller.example
- * );
- */
 const requireRole = (...allowedRoles) => {
     return (req, res, next) => {
-        if (!req.user || !req.user.role) {
+        if (!req.user) {
             return res.status(401).json({
                 success: false,
                 message: 'Authentication required'
@@ -75,7 +89,6 @@ const requireRole = (...allowedRoles) => {
         next();
     };
 };
-
 
 module.exports = {
     authenticate,

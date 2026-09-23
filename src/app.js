@@ -1,4 +1,6 @@
 require('dotenv').config();
+const assessmentRoutes =
+    require('./modules/candidate/assessment.routes');
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -26,7 +28,11 @@ app.get('/health', (req, res) => {
 
 // --- Module routes — mirrors SRS Sections 4.1–4.4 ---
 app.use('/api/auth', authRoutes);              // FR-AUTH-xx
-app.use('/api/candidates', candidateRoutes);   // FR-CAND-xx
+app.use('/api/candidates', candidateRoutes);
+app.use(
+    '/api/assessments',
+    assessmentRoutes
+);   // FR-CAND-xx
 app.use('/api/ledger', ledgerRoutes);          // FR-LEDG-xx
 app.use('/api/verify', verificationRoutes);    // FR-VERI-xx (public, no auth middleware)
 

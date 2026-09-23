@@ -90,6 +90,7 @@ const findUserForMfa = async (email) => {
             user_id,
             email,
             role,
+            hub_location_id,
             mfa_secret,
             is_mfa_active,
             locked_until
