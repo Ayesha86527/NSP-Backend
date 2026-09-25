@@ -1,5 +1,5 @@
 const candidateService = require('./candidate.service');
-
+const s3Service = require('./s3.service');
 const enrolCandidate = async (req, res, next) => {
     try {
         const candidate = await candidateService.enrolCandidate({
@@ -15,7 +15,21 @@ const enrolCandidate = async (req, res, next) => {
         next(error);
     }
 };
+const createPhotoUploadUrl = async (req, res, next) => {
+    try {
+        const result = await s3Service.createPhotoUploadUrl({
+            userId: req.user.userId
+        });
 
+        return res.status(200).json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
 module.exports = {
-    enrolCandidate
+    enrolCandidate,
+    createPhotoUploadUrl
 };

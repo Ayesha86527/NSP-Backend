@@ -39,5 +39,19 @@ router.post(
     '/:assessmentId/submit',
     assessmentController.submitAssessment
 );
+router.post(
+    '/:assessmentId/photo-upload-url',
+    assessmentController.createAssessmentPhotoUploadUrl
+);
+
+router.post(
+    '/:assessmentId/media',
+    assessmentController.addAssessmentMedia
+);
+
+router.get(
+    '/:assessmentId/media',
+    assessmentController.getAssessmentMedia
+);
 
 module.exports = router;

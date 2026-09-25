@@ -5,20 +5,24 @@ const createAssessment = async (req, res, next) => {
         const {
             candidateId,
             score,
-            grade
+            grade,
+            clientRequestId
         } = req.body;
 
-        const assessment =
+        const result =
             await assessmentService.createAssessment({
                 candidateId,
                 score,
                 grade,
+                clientRequestId,
                 user: req.user
             });
-
-        return res.status(201).json({
+        return res.status(
+            result.replayed ? 200 : 201
+        ).json({
             success: true,
-            assessment
+            replayed: result.replayed,
+            assessment: result.assessment
         });
     } catch (error) {
         next(error);
@@ -110,11 +114,82 @@ const getMyAssessments = async (req, res, next) => {
         next(error);
     }
 };
+//assessment media :
+const createAssessmentPhotoUploadUrl =
+    async (req, res, next) => {
+        try {
+            const {
+                assessmentId
+            } = req.params;
+
+            const result =
+                await assessmentService
+                    .createAssessmentPhotoUploadUrl({
+                        assessmentId,
+                        user: req.user
+                    });
+
+            return res.status(200).json({
+                success: true,
+                ...result
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
+const addAssessmentMedia = async (req, res, next) => {
+    try {
+        const {
+            assessmentId
+        } = req.params;
+
+        const {
+            mediaS3Uri
+        } = req.body;
+
+        const media =
+            await assessmentService.addAssessmentMedia({
+                assessmentId,
+                mediaS3Uri,
+                user: req.user
+            });
+
+        return res.status(201).json({
+            success: true,
+            media
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+const getAssessmentMedia = async (req, res, next) => {
+    try {
+        const {
+            assessmentId
+        } = req.params;
+
+        const media =
+            await assessmentService.getAssessmentMedia({
+                assessmentId,
+                user: req.user
+            });
+
+        return res.status(200).json({
+            success: true,
+            media
+        });
+    } catch (error) {
+        next(error);
+    }
+};
 
 module.exports = {
     createAssessment,
     getAssessment,
     updateAssessment,
     submitAssessment,
-    getMyAssessments
+    getMyAssessments,
+    createAssessmentPhotoUploadUrl,
+    addAssessmentMedia,
+    getAssessmentMedia
 };

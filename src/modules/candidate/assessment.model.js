@@ -4,7 +4,8 @@ const createAssessment = async ({
     candidateId,
     score,
     grade,
-    testerUserId
+    testerUserId,
+    clientRequestId
 }) => {
     const result = await pool.query(
         `
@@ -13,9 +14,10 @@ const createAssessment = async ({
             score,
             grade,
             tester_user_id,
+            client_request_id,
             status
         )
-        VALUES ($1, $2, $3, $4, 'DRAFT')
+        VALUES ($1, $2, $3, $4, $5, 'DRAFT')
         RETURNING
             assessment_id,
             candidate_id,
@@ -26,17 +28,50 @@ const createAssessment = async ({
             status,
             rejection_reason,
             submitted_at,
-            approved_at
+            approved_at,
+            client_request_id
         `,
         [
             candidateId,
             score,
             grade,
-            testerUserId
+            testerUserId,
+            clientRequestId
         ]
     );
 
     return result.rows[0];
+};
+const findByClientRequestId = async ({
+    testerUserId,
+    clientRequestId
+}) => {
+    const result = await pool.query(
+        `
+        SELECT
+            assessment_id,
+            candidate_id,
+            score,
+            grade,
+            tester_user_id,
+            superintendent_user_id,
+            status,
+            rejection_reason,
+            submitted_at,
+            approved_at,
+            client_request_id
+        FROM candidate.assessment_records
+        WHERE tester_user_id = $1
+          AND client_request_id = $2
+        LIMIT 1
+        `,
+        [
+            testerUserId,
+            clientRequestId
+        ]
+    );
+
+    return result.rows[0] || null;
 };
 
 const findById = async (assessmentId) => {
@@ -195,5 +230,6 @@ module.exports = {
     findByCandidateAndTester,
     findByTester,
     updateDraft,
-    submitDraft
+    submitDraft,
+    findByClientRequestId
 };
