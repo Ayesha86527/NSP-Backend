@@ -1,46 +1,49 @@
 const pool = require('../../config/db');
 
-const findUserByEmail = async (email) => {
+const createAuditLog = async ({
+    userId,
+    eventType,
+    email = null,
+    ipAddress = null,
+    details = null
+}) => {
     const result = await pool.query(
         `
-        SELECT
+        INSERT INTO auth.audit_logs (
             user_id,
+            event_type,
             email,
-            password_hash,
-            role,
-            hub_location_id,
-            mfa_secret,
-            is_mfa_active,
+            ip_address,
+            details
+        )
+        VALUES (
+            $1,
+            $2,
+            $3,
+            $4,
+            $5
+        )
+        RETURNING
+            audit_id,
+            user_id,
+            event_type,
+            email,
+            ip_address,
+            details,
             created_at
-        FROM auth.users
-        WHERE email = $1
         `,
-        [email]
-    );
-
-    return result.rows[0] || null;
-};
-
-const findUserForMfa = async (email) => {
-    const result = await pool.query(
-        `
-        SELECT
-            user_id,
+        [
+            userId,
+            eventType,
             email,
-            role,
-            hub_location_id,
-            mfa_secret,
-            is_mfa_active
-        FROM auth.users
-        WHERE email = $1
-        `,
-        [email]
+            ipAddress,
+            details
+        ]
     );
 
-    return result.rows[0] || null;
+    return result.rows[0];
 };
 
 module.exports = {
-    findUserByEmail,
-    findUserForMfa
+    createAuditLog
 };

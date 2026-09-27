@@ -183,6 +183,71 @@ const getAssessmentMedia = async (req, res, next) => {
     }
 };
 
+const getApprovalQueue = async (req, res, next) => {
+    try {
+        const assessments =
+            await assessmentService.getApprovalQueue({
+                user: req.user
+            });
+
+        return res.status(200).json({
+            success: true,
+            assessments
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+const approveAssessment = async (req, res, next) => {
+    try {
+        const {
+            assessmentId
+        } = req.params;
+
+        const assessment =
+            await assessmentService.approveAssessment({
+                assessmentId,
+                user: req.user
+            });
+
+        return res.status(200).json({
+            success: true,
+            assessment
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+const rejectAssessment = async (req, res, next) => {
+    try {
+        const {
+            assessmentId
+        } = req.params;
+
+        const {
+            rejectionReason
+        } = req.body;
+
+        const assessment =
+            await assessmentService.rejectAssessment({
+                assessmentId,
+                rejectionReason,
+                user: req.user
+            });
+
+        return res.status(200).json({
+            success: true,
+            assessment
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createAssessment,
     getAssessment,
@@ -191,5 +256,8 @@ module.exports = {
     getMyAssessments,
     createAssessmentPhotoUploadUrl,
     addAssessmentMedia,
-    getAssessmentMedia
+    getAssessmentMedia,
+    getApprovalQueue,
+    approveAssessment,
+    rejectAssessment
 };

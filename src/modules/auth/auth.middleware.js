@@ -1,8 +1,11 @@
 const jwt = require('jsonwebtoken');
 
+const { publicKey } = require('../../config/jwt');
+
 const authenticate = (req, res, next) => {
     try {
-        const authorization = req.headers.authorization;
+        const authorization =
+            req.headers.authorization;
 
         if (!authorization) {
             return res.status(401).json({
@@ -25,29 +28,26 @@ const authenticate = (req, res, next) => {
 
         const token = parts[1];
 
-        if (!process.env.JWT_SECRET) {
-            throw new Error(
-                'JWT_SECRET is not configured'
-            );
-        }
-
         const decoded = jwt.verify(
             token,
-            process.env.JWT_SECRET,
+            publicKey,
             {
-                algorithms: ['HS256']
+                algorithms: ['RS256']
             }
         );
 
         req.user = {
             userId: decoded.sub,
+            id: decoded.sub,
             email: decoded.email,
             role: decoded.role,
             hubLocationId: decoded.hubLocationId
         };
 
         next();
+
     } catch (error) {
+
         if (
             error.name === 'TokenExpiredError'
         ) {
@@ -72,6 +72,7 @@ const authenticate = (req, res, next) => {
 
 const requireRole = (...allowedRoles) => {
     return (req, res, next) => {
+
         if (!req.user) {
             return res.status(401).json({
                 success: false,
@@ -79,7 +80,9 @@ const requireRole = (...allowedRoles) => {
             });
         }
 
-        if (!allowedRoles.includes(req.user.role)) {
+        if (
+            !allowedRoles.includes(req.user.role)
+        ) {
             return res.status(403).json({
                 success: false,
                 message: 'Access denied'

@@ -8,6 +8,18 @@ const {
     findUserForMfa
 } = require('./auth.model');
 
+const {
+    privateKey,
+    accessTokenExpiresIn
+} = require('../../config/jwt');
+
+
+/*
+ * Login with email and password.
+ *
+ * Password verification is the first authentication step.
+ * MFA is required before an access token is issued.
+ */
 const login = async (email, password) => {
     const user = await findUserByEmail(email);
 
@@ -30,7 +42,14 @@ const login = async (email, password) => {
         };
     }
 
-    if (user.role !== 'TRADE_TESTER') {
+    /*
+     * Both Trade Testers and Center Superintendents
+     * are allowed to use the portal.
+     */
+    if (
+        user.role !== 'TRADE_TESTER' &&
+        user.role !== 'CENTER_SUPERINTENDENT'
+    ) {
         return {
             success: false,
             message: 'Access denied'
@@ -50,14 +69,24 @@ const login = async (email, password) => {
     };
 };
 
+
+/*
+ * Decrypt the AES-256-GCM encrypted MFA secret.
+ */
 const decryptMfaSecret = (encryptedSecret) => {
     const parts = encryptedSecret.split(':');
 
     if (parts.length !== 3) {
-        throw new Error('Invalid encrypted MFA secret format');
+        throw new Error(
+            'Invalid encrypted MFA secret format'
+        );
     }
 
-    const [ivHex, authTagHex, encryptedHex] = parts;
+    const [
+        ivHex,
+        authTagHex,
+        encryptedHex
+    ] = parts;
 
     if (!process.env.MFA_ENCRYPTION_KEY) {
         throw new Error(
@@ -76,9 +105,20 @@ const decryptMfaSecret = (encryptedSecret) => {
         );
     }
 
-    const iv = Buffer.from(ivHex, 'hex');
-    const authTag = Buffer.from(authTagHex, 'hex');
-    const encrypted = Buffer.from(encryptedHex, 'hex');
+    const iv = Buffer.from(
+        ivHex,
+        'hex'
+    );
+
+    const authTag = Buffer.from(
+        authTagHex,
+        'hex'
+    );
+
+    const encrypted = Buffer.from(
+        encryptedHex,
+        'hex'
+    );
 
     const decipher = crypto.createDecipheriv(
         'aes-256-gcm',
@@ -99,13 +139,33 @@ const decryptMfaSecret = (encryptedSecret) => {
     return decrypted;
 };
 
-const verifyMfa = async (email, mfaCode) => {
+
+/*
+ * Verify MFA and issue an RS256 access token.
+ */
+const verifyMfa = async (
+    email,
+    mfaCode
+) => {
     const user = await findUserForMfa(email);
 
     if (!user) {
         return {
             success: false,
             message: 'Invalid user'
+        };
+    }
+
+    /*
+     * Only roles supported by the portal can complete login.
+     */
+    if (
+        user.role !== 'TRADE_TESTER' &&
+        user.role !== 'CENTER_SUPERINTENDENT'
+    ) {
+        return {
+            success: false,
+            message: 'Access denied'
         };
     }
 
@@ -132,12 +192,12 @@ const verifyMfa = async (email, mfaCode) => {
         };
     }
 
-    if (!process.env.JWT_SECRET) {
-        throw new Error(
-            'JWT_SECRET is not configured'
-        );
-    }
-
+    /*
+     * Include the user's hub in the JWT.
+     *
+     * Superintendent authorization uses this value
+     * for hub-level access control.
+     */
     const accessToken = jwt.sign(
         {
             sub: user.user_id,
@@ -145,10 +205,10 @@ const verifyMfa = async (email, mfaCode) => {
             role: user.role,
             hubLocationId: user.hub_location_id
         },
-        process.env.JWT_SECRET,
+        privateKey,
         {
-            algorithm: 'HS256',
-            expiresIn: process.env.JWT_EXPIRES_IN || '15m'
+            algorithm: 'RS256',
+            expiresIn: accessTokenExpiresIn
         }
     );
 
@@ -157,7 +217,7 @@ const verifyMfa = async (email, mfaCode) => {
         message: 'Login successful',
         accessToken,
         tokenType: 'Bearer',
-        expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+        expiresIn: accessTokenExpiresIn,
         user: {
             id: user.user_id,
             email: user.email,
@@ -166,6 +226,7 @@ const verifyMfa = async (email, mfaCode) => {
         }
     };
 };
+
 
 module.exports = {
     login,

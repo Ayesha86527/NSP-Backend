@@ -2,7 +2,8 @@ const assessmentModel = require('./assessment.model');
 const candidateModel = require('./candidate.model');
 const assessmentMediaModel = require('./assessment-media.model');
 const s3Service = require('./s3.service');
-
+const auditModel = require('../auth/audit.model');
+const eventBus = require('../../events/eventBus');
 
 /*
  * Validate that the current user is an authenticated Trade Tester.
@@ -575,6 +576,336 @@ const getMyAssessments = async ({
     );
 };
 
+/*
+ * Validate that the current user is an authenticated
+ * Center Superintendent.
+ */
+const validateSuperintendent = (user) => {
+    if (!user) {
+        const error = new Error(
+            'Authentication required'
+        );
+        error.statusCode = 401;
+        throw error;
+    }
+
+    if (user.role !== 'CENTER_SUPERINTENDENT') {
+        const error = new Error(
+            'Only Center Superintendents can approve or reject assessments'
+        );
+        error.statusCode = 403;
+        throw error;
+    }
+
+    if (
+        user.hubLocationId === undefined ||
+        user.hubLocationId === null
+    ) {
+        const error = new Error(
+            'Superintendent hub is required'
+        );
+        error.statusCode = 403;
+        throw error;
+    }
+};
+
+
+/*
+ * Get SUBMITTED assessments for the Superintendent's hub.
+ */
+const getApprovalQueue = async ({
+    user
+}) => {
+    validateSuperintendent(user);
+
+    return assessmentModel.findSubmittedForSuperintendent(
+        user.hubLocationId
+    );
+};
+
+
+/*
+ * Approve a SUBMITTED assessment.
+ */
+const approveAssessment = async ({
+    assessmentId,
+    user
+}) => {
+    validateSuperintendent(user);
+
+    const assessment =
+        await assessmentModel.findById(
+            assessmentId
+        );
+
+    if (!assessment) {
+        const error = new Error(
+            'Assessment not found'
+        );
+        error.statusCode = 404;
+        throw error;
+    }
+
+    if (assessment.status === 'MINTED') {
+        const error = new Error(
+            'MINTED assessments cannot be approved or rejected'
+        );
+        error.statusCode = 409;
+        throw error;
+    }
+
+    /*
+     * Verify candidate ownership of the Superintendent's hub.
+     */
+    const candidate =
+        await candidateModel.findById(
+            assessment.candidate_id
+        );
+
+    if (!candidate) {
+        const error = new Error(
+            'Candidate not found'
+        );
+        error.statusCode = 404;
+        throw error;
+    }
+
+    if (
+        candidate.testing_hub_id !==
+        user.hubLocationId
+    ) {
+        const error = new Error(
+            'Assessment does not belong to your testing hub'
+        );
+        error.statusCode = 403;
+        throw error;
+    }
+
+    if (assessment.status !== 'SUBMITTED') {
+        const error = new Error(
+            'Only SUBMITTED assessments can be approved'
+        );
+        error.statusCode = 409;
+        throw error;
+    }
+
+    const approvedAssessment =
+        await assessmentModel.approveAssessment({
+            assessmentId,
+            superintendentUserId: user.userId
+        });
+
+    if (!approvedAssessment) {
+        const error = new Error(
+            'Assessment could not be approved'
+        );
+        error.statusCode = 409;
+        throw error;
+    }
+
+    /*
+     * Audit the successful approval.
+     */
+    await auditModel.createAuditLog({
+        userId: user.userId,
+        eventType: 'ASSESSMENT_APPROVED',
+        ipAddress: null,
+        details: {
+            assessmentId:
+                approvedAssessment.assessment_id,
+            candidateId:
+                approvedAssessment.candidate_id,
+            hubId:
+                approvedAssessment.testing_hub_id
+        }
+    });
+
+    /*
+     * Build the frozen shared event payload.
+     *
+     * The event is emitted only after the database update
+     * has succeeded.
+     *
+     * Event failure must never turn a successful approval
+     * into a failed HTTP request.
+     */
+    const eventPayload = {
+        assessmentId:
+            approvedAssessment.assessment_id,
+        candidateId:
+            approvedAssessment.candidate_id,
+        hubId:
+            approvedAssessment.testing_hub_id,
+        tradeCategory:
+            approvedAssessment.trade_category,
+        grade:
+            approvedAssessment.grade,
+        score:
+            approvedAssessment.score,
+        approvedAt:
+            approvedAssessment.approved_at,
+        superintendentUserId:
+            approvedAssessment.superintendent_user_id
+    };
+
+    try {
+        eventBus.emit(
+            'assessment.approved',
+            eventPayload
+        );
+
+        console.log(
+            '[EVENT] assessment.approved emitted',
+            eventPayload.assessmentId
+        );
+    } catch (error) {
+        /*
+         * Approval is already committed.
+         * Blockchain/ledger recovery is responsible for
+         * handling an event-handler failure.
+         */
+        console.error(
+            '[EVENT] assessment.approved handler failed:',
+            error.message
+        );
+    }
+
+    return approvedAssessment;
+};
+
+
+/*
+ * Reject a SUBMITTED assessment.
+ *
+ * SDD §6.2.3:
+ * SUBMITTED → REJECTED → DRAFT
+ *
+ * The final database state is DRAFT so the Trade Tester
+ * can edit and resubmit the assessment.
+ */
+const rejectAssessment = async ({
+    assessmentId,
+    rejectionReason,
+    user
+}) => {
+    validateSuperintendent(user);
+
+    if (
+        typeof rejectionReason !== 'string' ||
+        !rejectionReason.trim()
+    ) {
+        const error = new Error(
+            'Rejection reason is required'
+        );
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const assessment =
+        await assessmentModel.findById(
+            assessmentId
+        );
+
+    if (!assessment) {
+        const error = new Error(
+            'Assessment not found'
+        );
+        error.statusCode = 404;
+        throw error;
+    }
+
+    if (assessment.status === 'MINTED') {
+        const error = new Error(
+            'MINTED assessments cannot be approved or rejected'
+        );
+        error.statusCode = 409;
+        throw error;
+    }
+
+    const candidate =
+        await candidateModel.findById(
+            assessment.candidate_id
+        );
+
+    if (!candidate) {
+        const error = new Error(
+            'Candidate not found'
+        );
+        error.statusCode = 404;
+        throw error;
+    }
+
+    if (
+        candidate.testing_hub_id !==
+        user.hubLocationId
+    ) {
+        const error = new Error(
+            'Assessment does not belong to your testing hub'
+        );
+        error.statusCode = 403;
+        throw error;
+    }
+
+    if (assessment.status !== 'SUBMITTED') {
+        const error = new Error(
+            'Only SUBMITTED assessments can be rejected'
+        );
+        error.statusCode = 409;
+        throw error;
+    }
+
+    const rejectedAssessment =
+        await assessmentModel.rejectAssessment({
+            assessmentId,
+            superintendentUserId: user.userId,
+            rejectionReason: rejectionReason.trim()
+        });
+
+    if (!rejectedAssessment) {
+        const error = new Error(
+            'Assessment could not be rejected'
+        );
+        error.statusCode = 409;
+        throw error;
+    }
+
+    /*
+     * Audit the rejection.
+     */
+    await auditModel.createAuditLog({
+        userId: user.userId,
+        eventType: 'ASSESSMENT_REJECTED',
+        ipAddress: null,
+        details: {
+            assessmentId:
+                rejectedAssessment.assessment_id,
+            candidateId:
+                rejectedAssessment.candidate_id,
+            hubId:
+                rejectedAssessment.testing_hub_id,
+            rejectionReason:
+                rejectedAssessment.rejection_reason
+        }
+    });
+
+    /*
+     * Audit the automatic bounce back to DRAFT.
+     */
+    await auditModel.createAuditLog({
+        userId: user.userId,
+        eventType: 'ASSESSMENT_RETURNED_TO_DRAFT',
+        ipAddress: null,
+        details: {
+            assessmentId:
+                rejectedAssessment.assessment_id,
+            candidateId:
+                rejectedAssessment.candidate_id,
+            reason: 'SUPERINTENDENT_REJECTION'
+        }
+    });
+
+    return rejectedAssessment;
+};
 
 module.exports = {
     createAssessment,
@@ -584,5 +915,8 @@ module.exports = {
     getMyAssessments,
     createAssessmentPhotoUploadUrl,
     addAssessmentMedia,
-    getAssessmentMedia
+    getAssessmentMedia,
+    getApprovalQueue,
+    approveAssessment,
+    rejectAssessment
 };

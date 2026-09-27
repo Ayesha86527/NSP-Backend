@@ -224,6 +224,116 @@ const submitDraft = async ({
     return result.rows[0] || null;
 };
 
+const findSubmittedForSuperintendent = async (hubId) => {
+    const result = await pool.query(
+        `
+        SELECT
+            ar.assessment_id,
+            ar.candidate_id,
+            c.full_name,
+            c.trade_category,
+            c.testing_hub_id,
+            ar.score,
+            ar.grade,
+            ar.tester_user_id,
+            ar.superintendent_user_id,
+            ar.status,
+            ar.rejection_reason,
+            ar.submitted_at,
+            ar.approved_at
+        FROM candidate.assessment_records ar
+        INNER JOIN candidate.candidates c
+            ON c.candidate_id = ar.candidate_id
+        WHERE ar.status = 'SUBMITTED'
+          AND c.testing_hub_id = $1
+        ORDER BY ar.submitted_at ASC
+        `,
+        [hubId]
+    );
+
+    return result.rows;
+};
+
+
+const approveAssessment = async ({
+    assessmentId,
+    superintendentUserId
+}) => {
+    const result = await pool.query(
+        `
+        UPDATE candidate.assessment_records ar
+        SET
+            status = 'APPROVED',
+            superintendent_user_id = $2,
+            approved_at = NOW()
+        FROM candidate.candidates c
+        WHERE ar.assessment_id = $1
+          AND ar.candidate_id = c.candidate_id
+          AND ar.status = 'SUBMITTED'
+        RETURNING
+            ar.assessment_id,
+            ar.candidate_id,
+            ar.score,
+            ar.grade,
+            ar.tester_user_id,
+            ar.superintendent_user_id,
+            ar.status,
+            ar.rejection_reason,
+            ar.submitted_at,
+            ar.approved_at,
+            c.trade_category,
+            c.testing_hub_id
+        `,
+        [
+            assessmentId,
+            superintendentUserId
+        ]
+    );
+
+    return result.rows[0] || null;
+};
+
+
+const rejectAssessment = async ({
+    assessmentId,
+    superintendentUserId,
+    rejectionReason
+}) => {
+    const result = await pool.query(
+        `
+        UPDATE candidate.assessment_records ar
+        SET
+            status = 'DRAFT',
+            superintendent_user_id = $2,
+            rejection_reason = $3
+        FROM candidate.candidates c
+        WHERE ar.assessment_id = $1
+          AND ar.candidate_id = c.candidate_id
+          AND ar.status = 'SUBMITTED'
+        RETURNING
+            ar.assessment_id,
+            ar.candidate_id,
+            ar.score,
+            ar.grade,
+            ar.tester_user_id,
+            ar.superintendent_user_id,
+            ar.status,
+            ar.rejection_reason,
+            ar.submitted_at,
+            ar.approved_at,
+            c.trade_category,
+            c.testing_hub_id
+        `,
+        [
+            assessmentId,
+            superintendentUserId,
+            rejectionReason
+        ]
+    );
+
+    return result.rows[0] || null;
+};
+
 module.exports = {
     createAssessment,
     findById,
@@ -231,5 +341,8 @@ module.exports = {
     findByTester,
     updateDraft,
     submitDraft,
-    findByClientRequestId
+    findByClientRequestId,
+    findSubmittedForSuperintendent,
+    approveAssessment,
+    rejectAssessment
 };
