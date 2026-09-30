@@ -228,7 +228,39 @@ const verifyMfa = async (
 };
 
 
+const refreshAccessToken=async(refreshToken)=>{
+    try{    
+        const decode=jwt.verify(refreshToken , process.env.REFRESH_TOKEN_SECRET || 'secret .. .. .. .')
+        const accessToken=jwt.sign({userId:decode.userId , email:decode.email} , 
+            process.env.JWT_SECRET,
+            {expiresIn:"15m"}
+        );
+        return {accessToken};
+    }catch(err){
+        throw new Error('Invalid or expired refresh token .. .. . .');
+
+    }
+}
+const revokeUserSession = async (userId, email, refreshToken, ipAddress) => {
+    try {
+        const query = `DELETE FROM refresh_tokens WHERE token = $1 AND user_id = $2`;
+        await db.query(query, [refreshToken, userId]);
+        return {
+            success: true,
+            message: "Session revoked successfully. Token invalidated."
+        };
+
+    } catch (error) {
+        console.error("Revoke session error:", error);
+        return {
+            success: false,
+            message: "Failed to revoke session"
+        };
+    }
+};
 module.exports = {
     login,
-    verifyMfa
+    verifyMfa,
+    revokeUserSession,
+    refreshAccessToken
 };
