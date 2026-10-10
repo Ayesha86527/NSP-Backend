@@ -1,13 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 
+
 const privateKey = fs.readFileSync(
-    path.join(__dirname, 'keys', 'private.key'),
+    path.join(process.cwd(), 'keys', 'private.key'),
     'utf8'
 );
 
 const publicKey = fs.readFileSync(
-    path.join(__dirname, 'keys', 'public.key'),
+    path.join(process.cwd(), 'keys', 'public.key'),
     'utf8'
 );
 

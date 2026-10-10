@@ -5,7 +5,10 @@ const { verify } = require('otplib');
 
 const {
     findUserByEmail,
-    findUserForMfa
+    findUserForMfa,
+    findSessionByRefreshTokenHash,
+    findUserById,
+    revokeSession
 } = require('./auth.model');
 
 const {
@@ -145,77 +148,61 @@ const decryptMfaSecret = (encryptedSecret) => {
  */
 const verifyMfa = async (
     email,
-    mfaCode
+    mfaCode,
+    ipAddress // ipAddress parameter yahan receive karein
 ) => {
     const user = await findUserForMfa(email);
 
     if (!user) {
-        return {
-            success: false,
-            message: 'Invalid user'
-        };
+        return { success: false, message: 'Invalid user' };
     }
 
-    /*
-     * Only roles supported by the portal can complete login.
-     */
-    if (
-        user.role !== 'TRADE_TESTER' &&
-        user.role !== 'CENTER_SUPERINTENDENT'
-    ) {
-        return {
-            success: false,
-            message: 'Access denied'
-        };
+    if (user.role !== 'TRADE_TESTER' && user.role !== 'CENTER_SUPERINTENDENT') {
+        return { success: false, message: 'Access denied' };
     }
 
     if (!user.is_mfa_active) {
-        return {
-            success: false,
-            message: 'MFA is not active'
-        };
+        return { success: false, message: 'MFA is not active' };
     }
 
-    const mfaSecret = decryptMfaSecret(
-        user.mfa_secret
-    );
-
-    const isValid = await verify({
-        secret: mfaSecret,
-        token: mfaCode
-    });
+    const mfaSecret = decryptMfaSecret(user.mfa_secret);
+    const isValid = await verify({ secret: mfaSecret, token: mfaCode });
 
     if (!isValid) {
-        return {
-            success: false,
-            message: 'Invalid MFA code'
-        };
+        return { success: false, message: 'Invalid MFA code' };
     }
 
-    /*
-     * Include the user's hub in the JWT.
-     *
-     * Superintendent authorization uses this value
-     * for hub-level access control.
-     */
+    // 1. Generate RS256 Access Token
     const accessToken = jwt.sign(
         {
             sub: user.user_id,
-            email: user.email,
-            role: user.role,
-            hubLocationId: user.hub_location_id
-        },
-        privateKey,
-        {
-            algorithm: 'RS256',
-            expiresIn: accessTokenExpiresIn
-        }
+        email: user.email,
+        role: user.role,
+        hubLocationId: user.hub_location_id
+    },
+    privateKey,
+    { algorithm: 'RS256', expiresIn: accessTokenExpiresIn }
+);
+
+    // 2. Generate Refresh Token & Session in auth.sessions
+    const refreshToken = crypto.randomBytes(40).toString('hex');
+    const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days expiry
+
+    // Note: Agar model mein createSession function nahi hai toh aap direct pool query bhi laga sakte hain, 
+    // filhal session database mein save karne ke liye yeh query use ki ja sakti hai:
+    const pool = require('../../config/db');
+    await pool.query(
+        `INSERT INTO auth.sessions (user_id, refresh_token_hash, ip_address, expires_at, revoked) 
+         VALUES ($1, $2, $3, $4, FALSE)`,
+        [user.user_id, refreshTokenHash, ipAddress || '127.0.0.1', expiresAt]
     );
 
     return {
         success: true,
         message: 'Login successful',
         accessToken,
+        refreshToken, // Ab client ko refreshToken bhi mil jayega testing ke liye!
         tokenType: 'Bearer',
         expiresIn: accessTokenExpiresIn,
         user: {
@@ -227,29 +214,50 @@ const verifyMfa = async (
     };
 };
 
-
-const refreshAccessToken=async(refreshToken)=>{
-    try{    
-        const decode=jwt.verify(refreshToken , process.env.REFRESH_TOKEN_SECRET || 'secret .. .. .. .')
-        const accessToken=jwt.sign({userId:decode.userId , email:decode.email} , 
-            process.env.JWT_SECRET,
-            {expiresIn:"15m"}
-        );
-        return {accessToken};
-    }catch(err){
-        throw new Error('Invalid or expired refresh token .. .. . .');
-
-    }
-}
-const revokeUserSession = async (userId, email, refreshToken, ipAddress) => {
+const refreshAccessToken = async (refreshToken) => {
     try {
-        const query = `DELETE FROM refresh_tokens WHERE token = $1 AND user_id = $2`;
-        await db.query(query, [refreshToken, userId]);
+        const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+        const session = await findSessionByRefreshTokenHash(refreshTokenHash);
+
+        if (!session || session.revoked || new Date() > new Date(session.expires_at)) {
+            throw new Error('Invalid or expired refresh token');
+        }
+
+        const user = await findUserById(session.user_id);
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        const accessToken = jwt.sign(
+            {
+                sub: user.user_id,
+                email: user.email,
+                role: user.role,
+                hubLocationId: user.hub_location_id
+            },
+            privateKey,
+            { algorithm: 'RS256', expiresIn: accessTokenExpiresIn }
+        );
+
+        return { success: true, accessToken };
+    } catch (err) {
+        throw new Error('Invalid or expired refresh token');
+    }
+};
+
+const revokeUserSession = async (refreshToken) => {
+    try {
+        const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+        const session = await findSessionByRefreshTokenHash(refreshTokenHash);
+
+        if (session) {
+            await revokeSession(session.session_id);
+        }
+
         return {
             success: true,
             message: "Session revoked successfully. Token invalidated."
         };
-
     } catch (error) {
         console.error("Revoke session error:", error);
         return {

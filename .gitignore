@@ -1,4 +1,11 @@
-﻿node_modules/
+﻿# Dependencies
+node_modules/
+
+# Environment variables
 .env
+
+# Key folders and PEM files
 src/config/keys/
+keys/
 *.pem
+nsp-dev-key.pem
