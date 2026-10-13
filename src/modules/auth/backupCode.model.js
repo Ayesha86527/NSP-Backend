@@ -1,10 +1,9 @@
-const bcrypt = require('bcrypt');
 
+const bcrypt = require('bcrypt');
 const pool = require('../../config/db');
 
-
-/*
- * Check whether backup codes already exist for a user.
+/**
+ * Count all backup codes for a user.
  */
 const countBackupCodes = async (userId) => {
     const result = await pool.query(
@@ -19,14 +18,10 @@ const countBackupCodes = async (userId) => {
     return result.rows[0].count;
 };
 
-
-/*
+/**
  * Store one backup-code hash.
  */
-const createBackupCode = async (
-    userId,
-    codeHash
-) => {
+const createBackupCode = async (userId, codeHash) => {
     const result = await pool.query(
         `
         INSERT INTO auth.backup_codes (
@@ -34,31 +29,134 @@ const createBackupCode = async (
             code_hash
         )
         VALUES ($1, $2)
-        RETURNING
-            backup_code_id,
-            user_id,
-            created_at
+        RETURNING backup_code_id, user_id, created_at
         `,
-        [
-            userId,
-            codeHash
-        ]
+        [userId, codeHash]
     );
 
     return result.rows[0];
 };
 
-
-/*
- * Find and consume a backup code.
- *
- * The transaction locks unused codes for this user
- * while checking and consuming the matching code.
+/**
+ * Store multiple hashes in one transaction.
  */
-const verifyAndConsumeBackupCode = async (
-    userId,
-    backupCode
-) => {
+const createBackupCodes = async (userId, codeHashes) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const insertedCodes = [];
+
+        for (const codeHash of codeHashes) {
+            const result = await client.query(
+                `
+                INSERT INTO auth.backup_codes (
+                    user_id,
+                    code_hash
+                )
+                VALUES ($1, $2)
+                RETURNING backup_code_id, user_id, created_at
+                `,
+                [userId, codeHash]
+            );
+
+            insertedCodes.push(result.rows[0]);
+        }
+
+        await client.query('COMMIT');
+        return insertedCodes;
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
+/**
+ * Atomically ensure that only one backup-code set is generated
+ * for a user. Locks the user row while checking and inserting.
+ */
+const generateBackupCodesIfAbsent = async (userId, codeHashes) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // Serialize generation requests for this user.
+        const userResult = await client.query(
+            `
+            SELECT user_id
+            FROM auth.users
+            WHERE user_id = $1
+            FOR UPDATE
+            `,
+            [userId]
+        );
+
+        if (userResult.rowCount === 0) {
+            await client.query('ROLLBACK');
+
+            return {
+                created: false,
+                reason: 'user_not_found'
+            };
+        }
+
+        const existingResult = await client.query(
+            `
+            SELECT COUNT(*)::int AS count
+            FROM auth.backup_codes
+            WHERE user_id = $1
+            `,
+            [userId]
+        );
+
+        if (existingResult.rows[0].count > 0) {
+            await client.query('ROLLBACK');
+
+            return {
+                created: false,
+                reason: 'already_exists'
+            };
+        }
+
+        for (const codeHash of codeHashes) {
+            await client.query(
+                `
+                INSERT INTO auth.backup_codes (
+                    user_id,
+                    code_hash
+                )
+                VALUES ($1, $2)
+                `,
+                [userId, codeHash]
+            );
+        }
+
+        await client.query('COMMIT');
+
+        return {
+            created: true
+        };
+    } catch (error) {
+        try {
+            await client.query('ROLLBACK');
+        } catch (rollbackError) {
+            console.error('Backup-code transaction rollback failed');
+        }
+
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
+/**
+ * Find and consume a backup code exactly once.
+ */
+const verifyAndConsumeBackupCode = async (userId, backupCode) => {
     const client = await pool.connect();
 
     try {
@@ -66,9 +164,7 @@ const verifyAndConsumeBackupCode = async (
 
         const result = await client.query(
             `
-            SELECT
-                backup_code_id,
-                code_hash
+            SELECT backup_code_id, code_hash
             FROM auth.backup_codes
             WHERE user_id = $1
               AND used_at IS NULL
@@ -109,15 +205,19 @@ const verifyAndConsumeBackupCode = async (
             success: false
         };
     } catch (error) {
-        await client.query('ROLLBACK');
+        try {
+            await client.query('ROLLBACK');
+        } catch (rollbackError) {
+            console.error('Backup-code verification rollback failed');
+        }
+
         throw error;
     } finally {
         client.release();
     }
 };
 
-
-/*
+/**
  * Get backup-code usage status.
  */
 const getBackupCodeStatus = async (userId) => {
@@ -140,10 +240,11 @@ const getBackupCodeStatus = async (userId) => {
     return result.rows[0];
 };
 
-
 module.exports = {
     countBackupCodes,
     createBackupCode,
+    createBackupCodes,
+    generateBackupCodesIfAbsent,
     verifyAndConsumeBackupCode,
     getBackupCodeStatus
 };
