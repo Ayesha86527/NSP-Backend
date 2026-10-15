@@ -10,6 +10,7 @@ const {
     findSessionByRefreshTokenHash,
     findUserById,
     revokeSession,
+    rotateRefreshToken,
     recordFailedLogin,
     resetFailedLoginAttempts
 } = require('./auth.model');
@@ -26,7 +27,6 @@ const {
 } = require('../../config/jwt');
 
 const pool = require('../../config/db');
-
 
 // ======================================================
 // LOGIN: EMAIL + PASSWORD + ACCOUNT LOCKOUT
@@ -102,7 +102,6 @@ const login = async (email, password) => {
     };
 };
 
-
 // ======================================================
 // DECRYPT ENCRYPTED MFA SECRET
 // ======================================================
@@ -157,7 +156,6 @@ const decryptMfaSecret = (encryptedSecret) => {
 
     return decrypted;
 };
-
 
 // ======================================================
 // VERIFY MFA + CREATE SESSION
@@ -278,18 +276,15 @@ const verifyMfa = async (email, mfaCode, ipAddress) => {
     };
 };
 
-
 // ======================================================
 // GENERATE BACKUP CODES
 // Creates 10 codes only when no codes already exist.
-// Plaintext codes are returned only after successful creation.
 // ======================================================
 
 const generateBackupCodes = async (userId) => {
     const backupCodes = [];
     const codeHashes = [];
 
-    // Generate and hash all 10 codes before writing to the database.
     for (let i = 0; i < 10; i++) {
         const backupCode = crypto.randomBytes(8).toString('hex');
         const codeHash = await bcrypt.hash(backupCode, 12);
@@ -298,7 +293,6 @@ const generateBackupCodes = async (userId) => {
         codeHashes.push(codeHash);
     }
 
-    // The model checks and inserts within a database transaction.
     const result = await generateBackupCodesIfAbsent(
         userId,
         codeHashes
@@ -326,7 +320,6 @@ const generateBackupCodes = async (userId) => {
         backupCodes
     };
 };
-
 
 // ======================================================
 // VERIFY AND CONSUME A BACKUP CODE
@@ -467,7 +460,6 @@ const verifyBackupCode = async (
     };
 };
 
-
 // ======================================================
 // GET BACKUP-CODE STATUS
 // ======================================================
@@ -483,14 +475,19 @@ const getUserBackupCodeStatus = async (userId) => {
     };
 };
 
-
 // ======================================================
-// REFRESH ACCESS TOKEN
-// Existing behavior retained.
+// REFRESH ACCESS TOKEN + ROTATE REFRESH TOKEN
 // ======================================================
 
-const refreshAccessToken = async (refreshToken) => {
+const refreshAccessToken = async (refreshToken, ipAddress) => {
     try {
+        if (
+            typeof refreshToken !== 'string' ||
+            refreshToken.length === 0
+        ) {
+            throw new Error('Invalid refresh token');
+        }
+
         const refreshTokenHash = crypto
             .createHash('sha256')
             .update(refreshToken)
@@ -503,7 +500,7 @@ const refreshAccessToken = async (refreshToken) => {
         if (
             !session ||
             session.revoked ||
-            new Date() > new Date(session.expires_at)
+            new Date(session.expires_at) <= new Date()
         ) {
             throw new Error('Invalid or expired refresh token');
         }
@@ -511,7 +508,35 @@ const refreshAccessToken = async (refreshToken) => {
         const user = await findUserById(session.user_id);
 
         if (!user) {
-            throw new Error('User not found');
+            throw new Error('Invalid or expired refresh token');
+        }
+
+        // Generate a new refresh token; only its hash is stored.
+        const newRefreshToken = crypto
+            .randomBytes(40)
+            .toString('hex');
+
+        const newRefreshTokenHash = crypto
+            .createHash('sha256')
+            .update(newRefreshToken)
+            .digest('hex');
+
+        const newExpiresAt = new Date(
+            Date.now() + 7 * 24 * 60 * 60 * 1000
+        );
+
+        // Replace the old hash in the existing session.
+        // Check the returned row to detect a failed rotation.
+        const rotatedSession = await rotateRefreshToken(
+            session.session_id,
+            refreshTokenHash,
+            newRefreshTokenHash,
+            newExpiresAt,
+            ipAddress || session.ip_address || '127.0.0.1'
+        );
+
+        if (!rotatedSession) {
+            throw new Error('Refresh token rotation failed');
         }
 
         const accessToken = jwt.sign(
@@ -530,13 +555,16 @@ const refreshAccessToken = async (refreshToken) => {
 
         return {
             success: true,
-            accessToken
+            message: 'Access token refreshed successfully',
+            accessToken,
+            refreshToken: newRefreshToken,
+            tokenType: 'Bearer',
+            expiresIn: accessTokenExpiresIn
         };
     } catch (error) {
         throw new Error('Invalid or expired refresh token');
     }
 };
-
 
 // ======================================================
 // REVOKE SESSION
@@ -570,7 +598,6 @@ const revokeUserSession = async (refreshToken) => {
         };
     }
 };
-
 
 // ======================================================
 // EXPORTS
