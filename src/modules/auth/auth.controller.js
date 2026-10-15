@@ -1,5 +1,5 @@
-const authService = require('./auth.service');
 
+const authService = require('./auth.service');
 
 // ======================================================
 // LOGIN
@@ -16,12 +16,10 @@ const login = async (req, res, next) => {
             });
         }
 
-        const ipAddress = req.ip;
-
         const result = await authService.login(
             email,
             password,
-            ipAddress
+            req.ip
         );
 
         if (!result.success) {
@@ -33,7 +31,6 @@ const login = async (req, res, next) => {
         next(error);
     }
 };
-
 
 // ======================================================
 // VERIFY MFA
@@ -50,12 +47,10 @@ const verifyMfa = async (req, res, next) => {
             });
         }
 
-        const ipAddress = req.ip;
-
         const result = await authService.verifyMfa(
             email,
             mfaCode,
-            ipAddress
+            req.ip
         );
 
         if (!result.success) {
@@ -67,7 +62,6 @@ const verifyMfa = async (req, res, next) => {
         next(error);
     }
 };
-
 
 // ======================================================
 // REFRESH ACCESS TOKEN
@@ -85,7 +79,8 @@ const refresh = async (req, res, next) => {
         }
 
         const result = await authService.refreshAccessToken(
-            refreshToken
+            refreshToken,
+            req.ip
         );
 
         if (!result.success) {
@@ -97,7 +92,6 @@ const refresh = async (req, res, next) => {
         next(error);
     }
 };
-
 
 // ======================================================
 // REVOKE SESSION
@@ -115,7 +109,8 @@ const revokeSession = async (req, res, next) => {
         }
 
         const result = await authService.revokeUserSession(
-            refreshToken
+            refreshToken,
+            req.ip
         );
 
         if (!result.success) {
@@ -127,7 +122,6 @@ const revokeSession = async (req, res, next) => {
         next(error);
     }
 };
-
 
 // ======================================================
 // GENERATE BACKUP CODES
@@ -150,7 +144,6 @@ const generateBackupCodes = async (req, res, next) => {
     }
 };
 
-
 // ======================================================
 // VERIFY BACKUP CODE
 // Requires email, password, and backupCode.
@@ -158,11 +151,7 @@ const generateBackupCodes = async (req, res, next) => {
 
 const verifyBackupCode = async (req, res, next) => {
     try {
-        const {
-            email,
-            password,
-            backupCode
-        } = req.body;
+        const { email, password, backupCode } = req.body;
 
         if (!email || !password || !backupCode) {
             return res.status(400).json({
@@ -172,13 +161,11 @@ const verifyBackupCode = async (req, res, next) => {
             });
         }
 
-        const ipAddress = req.ip;
-
         const result = await authService.verifyBackupCode(
             email,
             password,
             backupCode,
-            ipAddress
+            req.ip
         );
 
         if (!result.success) {
@@ -190,7 +177,6 @@ const verifyBackupCode = async (req, res, next) => {
         next(error);
     }
 };
-
 
 // ======================================================
 // BACKUP-CODE STATUS
@@ -208,7 +194,6 @@ const backupCodeStatus = async (req, res, next) => {
         next(error);
     }
 };
-
 
 // ======================================================
 // EXPORT CONTROLLERS

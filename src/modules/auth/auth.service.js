@@ -4,6 +4,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { verify } = require('otplib');
 
+const { createAuditLog } = require('./audit.model');
+
 const {
     findUserByEmail,
     findUserForMfa,
@@ -29,13 +31,60 @@ const {
 const pool = require('../../config/db');
 
 // ======================================================
+// SAFE AUDIT LOGGING
+// Audit failures must not interrupt authentication.
+// Never include passwords, MFA codes, or raw tokens.
+// ======================================================
+
+const logAuditSafely = async ({
+    userId = null,
+    eventType,
+    email = null,
+    ipAddress = null,
+    details = null
+}) => {
+    try {
+        await createAuditLog({
+            userId,
+            eventType,
+            email,
+            ipAddress,
+            details
+        });
+    } catch (error) {
+        console.error(
+            '[AUDIT] Failed to write audit log:',
+            error.message
+        );
+    }
+};
+
+const getAllowedAuthRole = (role) =>
+    role === 'TRADE_TESTER' ||
+    role === 'CENTER_SUPERINTENDENT';
+
+const getUserAuditDetails = (user) => ({
+    role: user.role
+});
+
+// ======================================================
 // LOGIN: EMAIL + PASSWORD + ACCOUNT LOCKOUT
 // ======================================================
 
-const login = async (email, password) => {
+const login = async (email, password, ipAddress = null) => {
     const user = await findUserByEmail(email);
 
     if (!user) {
+        await logAuditSafely({
+            eventType: 'AUTH_LOGIN_FAILED',
+            email,
+            ipAddress,
+            details: {
+                reason: 'USER_NOT_FOUND',
+                method: 'PASSWORD'
+            }
+        });
+
         return {
             success: false,
             message: 'Invalid email or password'
@@ -46,6 +95,17 @@ const login = async (email, password) => {
         user.locked_until &&
         new Date(user.locked_until) > new Date()
     ) {
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_LOGIN_BLOCKED',
+            email: user.email,
+            ipAddress,
+            details: {
+                reason: 'ACCOUNT_LOCKED',
+                method: 'PASSWORD'
+            }
+        });
+
         return {
             success: false,
             message: 'Account locked. Please try again later.'
@@ -60,10 +120,31 @@ const login = async (email, password) => {
     if (!passwordMatches) {
         const failedLogin = await recordFailedLogin(user.user_id);
 
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_LOGIN_FAILED',
+            email: user.email,
+            ipAddress,
+            details: {
+                reason: 'INVALID_PASSWORD',
+                method: 'PASSWORD'
+            }
+        });
+
         if (
             failedLogin &&
             failedLogin.failed_login_attempts >= 5
         ) {
+            await logAuditSafely({
+                userId: user.user_id,
+                eventType: 'AUTH_ACCOUNT_LOCKED',
+                email: user.email,
+                ipAddress,
+                details: {
+                    reason: 'FAILED_LOGIN_LIMIT_REACHED'
+                }
+            });
+
             return {
                 success: false,
                 message:
@@ -77,10 +158,18 @@ const login = async (email, password) => {
         };
     }
 
-    if (
-        user.role !== 'TRADE_TESTER' &&
-        user.role !== 'CENTER_SUPERINTENDENT'
-    ) {
+    if (!getAllowedAuthRole(user.role)) {
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_LOGIN_DENIED',
+            email: user.email,
+            ipAddress,
+            details: {
+                reason: 'ROLE_NOT_ALLOWED',
+                method: 'PASSWORD'
+            }
+        });
+
         return {
             success: false,
             message: 'Access denied'
@@ -88,6 +177,29 @@ const login = async (email, password) => {
     }
 
     await resetFailedLoginAttempts(user.user_id);
+
+    await logAuditSafely({
+        userId: user.user_id,
+        eventType: 'AUTH_PASSWORD_VERIFIED',
+        email: user.email,
+        ipAddress,
+        details: {
+            nextStep: 'MFA_REQUIRED'
+        }
+    });
+
+    // Explicitly record that the password step passed and an MFA
+    // challenge is now required. Do not log the MFA code or secret.
+    await logAuditSafely({
+        userId: user.user_id,
+        eventType: 'AUTH_MFA_CHALLENGE_ISSUED',
+        email: user.email,
+        ipAddress,
+        details: {
+            challengeType: 'TOTP',
+            result: 'CHALLENGE_REQUIRED'
+        }
+    });
 
     return {
         success: true,
@@ -161,10 +273,20 @@ const decryptMfaSecret = (encryptedSecret) => {
 // VERIFY MFA + CREATE SESSION
 // ======================================================
 
-const verifyMfa = async (email, mfaCode, ipAddress) => {
+const verifyMfa = async (email, mfaCode, ipAddress = null) => {
     const user = await findUserForMfa(email);
 
     if (!user) {
+        await logAuditSafely({
+            eventType: 'AUTH_MFA_FAILED',
+            email,
+            ipAddress,
+            details: {
+                reason: 'USER_NOT_FOUND',
+                method: 'TOTP'
+            }
+        });
+
         return {
             success: false,
             message: 'Invalid user'
@@ -175,16 +297,34 @@ const verifyMfa = async (email, mfaCode, ipAddress) => {
         user.locked_until &&
         new Date(user.locked_until) > new Date()
     ) {
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_MFA_BLOCKED',
+            email: user.email,
+            ipAddress,
+            details: {
+                reason: 'ACCOUNT_LOCKED',
+                method: 'TOTP'
+            }
+        });
+
         return {
             success: false,
             message: 'Account locked. Please try again later.'
         };
     }
 
-    if (
-        user.role !== 'TRADE_TESTER' &&
-        user.role !== 'CENTER_SUPERINTENDENT'
-    ) {
+    if (!getAllowedAuthRole(user.role)) {
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_MFA_DENIED',
+            email: user.email,
+            ipAddress,
+            details: {
+                reason: 'ROLE_NOT_ALLOWED'
+            }
+        });
+
         return {
             success: false,
             message: 'Access denied'
@@ -192,6 +332,17 @@ const verifyMfa = async (email, mfaCode, ipAddress) => {
     }
 
     if (!user.is_mfa_active) {
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_MFA_FAILED',
+            email: user.email,
+            ipAddress,
+            details: {
+                reason: 'MFA_NOT_ACTIVE',
+                method: 'TOTP'
+            }
+        });
+
         return {
             success: false,
             message: 'MFA is not active'
@@ -203,7 +354,18 @@ const verifyMfa = async (email, mfaCode, ipAddress) => {
     try {
         mfaSecret = decryptMfaSecret(user.mfa_secret);
     } catch (error) {
-        console.error('MFA secret decryption failed');
+        console.error('[AUTH] MFA secret decryption failed.');
+
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_MFA_FAILED',
+            email: user.email,
+            ipAddress,
+            details: {
+                reason: 'MFA_SECRET_DECRYPTION_FAILED',
+                method: 'TOTP'
+            }
+        });
 
         return {
             success: false,
@@ -211,12 +373,43 @@ const verifyMfa = async (email, mfaCode, ipAddress) => {
         };
     }
 
-    const result = await verify({
-        secret: mfaSecret,
-        token: mfaCode
-    });
+    let result;
+
+    try {
+        result = await verify({
+            secret: mfaSecret,
+            token: mfaCode
+        });
+    } catch (error) {
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_MFA_FAILED',
+            email: user.email,
+            ipAddress,
+            details: {
+                reason: 'MFA_VERIFICATION_ERROR',
+                method: 'TOTP'
+            }
+        });
+
+        return {
+            success: false,
+            message: 'Unable to verify MFA'
+        };
+    }
 
     if (!result.valid) {
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_MFA_FAILED',
+            email: user.email,
+            ipAddress,
+            details: {
+                reason: 'INVALID_MFA_CODE',
+                method: 'TOTP'
+            }
+        });
+
         return {
             success: false,
             message: 'Invalid MFA code'
@@ -260,6 +453,27 @@ const verifyMfa = async (email, mfaCode, ipAddress) => {
         ]
     );
 
+    await logAuditSafely({
+        userId: user.user_id,
+        eventType: 'AUTH_MFA_SUCCESS',
+        email: user.email,
+        ipAddress,
+        details: {
+            method: 'TOTP',
+            result: 'SUCCESS'
+        }
+    });
+
+    await logAuditSafely({
+        userId: user.user_id,
+        eventType: 'AUTH_LOGIN_SUCCESS',
+        email: user.email,
+        ipAddress,
+        details: {
+            method: 'MFA'
+        }
+    });
+
     return {
         success: true,
         message: 'Login successful',
@@ -300,11 +514,27 @@ const generateBackupCodes = async (userId) => {
 
     if (!result.created) {
         if (result.reason === 'user_not_found') {
+            await logAuditSafely({
+                userId,
+                eventType: 'AUTH_BACKUP_CODES_GENERATION_FAILED',
+                details: {
+                    reason: 'USER_NOT_FOUND'
+                }
+            });
+
             return {
                 success: false,
                 message: 'User not found'
             };
         }
+
+        await logAuditSafely({
+            userId,
+            eventType: 'AUTH_BACKUP_CODES_GENERATION_FAILED',
+            details: {
+                reason: 'BACKUP_CODES_ALREADY_EXIST'
+            }
+        });
 
         return {
             success: false,
@@ -312,6 +542,14 @@ const generateBackupCodes = async (userId) => {
                 'Backup codes already exist. Use your existing codes.'
         };
     }
+
+    await logAuditSafely({
+        userId,
+        eventType: 'AUTH_BACKUP_CODES_GENERATED',
+        details: {
+            count: backupCodes.length
+        }
+    });
 
     return {
         success: true,
@@ -330,11 +568,20 @@ const verifyBackupCode = async (
     email,
     password,
     backupCode,
-    ipAddress
+    ipAddress = null
 ) => {
     const user = await findUserByEmail(email);
 
     if (!user) {
+        await logAuditSafely({
+            eventType: 'AUTH_BACKUP_CODE_LOGIN_FAILED',
+            email,
+            ipAddress,
+            details: {
+                reason: 'USER_NOT_FOUND'
+            }
+        });
+
         return {
             success: false,
             message: 'Invalid credentials or backup code'
@@ -345,6 +592,16 @@ const verifyBackupCode = async (
         user.locked_until &&
         new Date(user.locked_until) > new Date()
     ) {
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_BACKUP_CODE_LOGIN_BLOCKED',
+            email: user.email,
+            ipAddress,
+            details: {
+                reason: 'ACCOUNT_LOCKED'
+            }
+        });
+
         return {
             success: false,
             message: 'Account locked. Please try again later.'
@@ -359,10 +616,30 @@ const verifyBackupCode = async (
     if (!passwordMatches) {
         const failedLogin = await recordFailedLogin(user.user_id);
 
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_BACKUP_CODE_LOGIN_FAILED',
+            email: user.email,
+            ipAddress,
+            details: {
+                reason: 'INVALID_PASSWORD'
+            }
+        });
+
         if (
             failedLogin &&
             failedLogin.failed_login_attempts >= 5
         ) {
+            await logAuditSafely({
+                userId: user.user_id,
+                eventType: 'AUTH_ACCOUNT_LOCKED',
+                email: user.email,
+                ipAddress,
+                details: {
+                    reason: 'FAILED_LOGIN_LIMIT_REACHED'
+                }
+            });
+
             return {
                 success: false,
                 message:
@@ -376,10 +653,17 @@ const verifyBackupCode = async (
         };
     }
 
-    if (
-        user.role !== 'TRADE_TESTER' &&
-        user.role !== 'CENTER_SUPERINTENDENT'
-    ) {
+    if (!getAllowedAuthRole(user.role)) {
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_BACKUP_CODE_LOGIN_DENIED',
+            email: user.email,
+            ipAddress,
+            details: {
+                reason: 'ROLE_NOT_ALLOWED'
+            }
+        });
+
         return {
             success: false,
             message: 'Access denied'
@@ -387,6 +671,16 @@ const verifyBackupCode = async (
     }
 
     if (!user.is_mfa_active) {
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_BACKUP_CODE_LOGIN_FAILED',
+            email: user.email,
+            ipAddress,
+            details: {
+                reason: 'MFA_NOT_ACTIVE'
+            }
+        });
+
         return {
             success: false,
             message: 'MFA is not active'
@@ -399,6 +693,16 @@ const verifyBackupCode = async (
     );
 
     if (!verification.success) {
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_BACKUP_CODE_LOGIN_FAILED',
+            email: user.email,
+            ipAddress,
+            details: {
+                reason: 'INVALID_OR_USED_BACKUP_CODE'
+            }
+        });
+
         return {
             success: false,
             message: 'Invalid or already-used backup code'
@@ -444,6 +748,27 @@ const verifyBackupCode = async (
         ]
     );
 
+    await logAuditSafely({
+        userId: user.user_id,
+        eventType: 'AUTH_MFA_SUCCESS',
+        email: user.email,
+        ipAddress,
+        details: {
+            method: 'BACKUP_CODE',
+            result: 'SUCCESS'
+        }
+    });
+
+    await logAuditSafely({
+        userId: user.user_id,
+        eventType: 'AUTH_LOGIN_SUCCESS',
+        email: user.email,
+        ipAddress,
+        details: {
+            method: 'BACKUP_CODE'
+        }
+    });
+
     return {
         success: true,
         message: 'Backup code verified. Login successful.',
@@ -479,7 +804,12 @@ const getUserBackupCodeStatus = async (userId) => {
 // REFRESH ACCESS TOKEN + ROTATE REFRESH TOKEN
 // ======================================================
 
-const refreshAccessToken = async (refreshToken, ipAddress) => {
+const refreshAccessToken = async (
+    refreshToken,
+    ipAddress = null
+) => {
+    let auditUser = null;
+
     try {
         if (
             typeof refreshToken !== 'string' ||
@@ -511,6 +841,8 @@ const refreshAccessToken = async (refreshToken, ipAddress) => {
             throw new Error('Invalid or expired refresh token');
         }
 
+        auditUser = user;
+
         // Generate a new refresh token; only its hash is stored.
         const newRefreshToken = crypto
             .randomBytes(40)
@@ -525,8 +857,6 @@ const refreshAccessToken = async (refreshToken, ipAddress) => {
             Date.now() + 7 * 24 * 60 * 60 * 1000
         );
 
-        // Replace the old hash in the existing session.
-        // Check the returned row to detect a failed rotation.
         const rotatedSession = await rotateRefreshToken(
             session.session_id,
             refreshTokenHash,
@@ -553,6 +883,16 @@ const refreshAccessToken = async (refreshToken, ipAddress) => {
             }
         );
 
+        await logAuditSafely({
+            userId: user.user_id,
+            eventType: 'AUTH_TOKEN_REFRESHED',
+            email: user.email,
+            ipAddress,
+            details: {
+                result: 'SUCCESS'
+            }
+        });
+
         return {
             success: true,
             message: 'Access token refreshed successfully',
@@ -562,6 +902,16 @@ const refreshAccessToken = async (refreshToken, ipAddress) => {
             expiresIn: accessTokenExpiresIn
         };
     } catch (error) {
+        await logAuditSafely({
+            userId: auditUser ? auditUser.user_id : null,
+            eventType: 'AUTH_TOKEN_REFRESH_FAILED',
+            email: auditUser ? auditUser.email : null,
+            ipAddress,
+            details: {
+                reason: 'INVALID_OR_EXPIRED_REFRESH_TOKEN'
+            }
+        });
+
         throw new Error('Invalid or expired refresh token');
     }
 };
@@ -570,8 +920,29 @@ const refreshAccessToken = async (refreshToken, ipAddress) => {
 // REVOKE SESSION
 // ======================================================
 
-const revokeUserSession = async (refreshToken) => {
+const revokeUserSession = async (
+    refreshToken,
+    ipAddress = null
+) => {
     try {
+        if (
+            typeof refreshToken !== 'string' ||
+            refreshToken.length === 0
+        ) {
+            await logAuditSafely({
+                eventType: 'AUTH_SESSION_REVOCATION_FAILED',
+                ipAddress,
+                details: {
+                    reason: 'MISSING_REFRESH_TOKEN'
+                }
+            });
+
+            return {
+                success: false,
+                message: 'Failed to revoke session'
+            };
+        }
+
         const refreshTokenHash = crypto
             .createHash('sha256')
             .update(refreshToken)
@@ -581,16 +952,70 @@ const revokeUserSession = async (refreshToken) => {
             refreshTokenHash
         );
 
-        if (session) {
-            await revokeSession(session.session_id);
+        if (!session) {
+            // Keep the external response generic to avoid revealing
+            // whether a particular refresh token exists.
+            await logAuditSafely({
+                eventType: 'AUTH_SESSION_REVOCATION_FAILED',
+                ipAddress,
+                details: {
+                    reason: 'SESSION_NOT_FOUND_OR_INVALID'
+                }
+            });
+
+            return {
+                success: true,
+                message: 'Session revoked successfully. Token invalidated.'
+            };
         }
+
+        if (session.revoked) {
+            await logAuditSafely({
+                userId: session.user_id,
+                eventType: 'AUTH_SESSION_REVOCATION_FAILED',
+                ipAddress,
+                details: {
+                    reason: 'SESSION_ALREADY_REVOKED'
+                }
+            });
+
+            return {
+                success: true,
+                message: 'Session revoked successfully. Token invalidated.'
+            };
+        }
+
+        await revokeSession(session.session_id);
+
+        const user = await findUserById(session.user_id);
+
+        await logAuditSafely({
+            userId: session.user_id,
+            eventType: 'AUTH_SESSION_REVOKED',
+            email: user ? user.email : null,
+            ipAddress,
+            details: {
+                result: 'SUCCESS'
+            }
+        });
 
         return {
             success: true,
             message: 'Session revoked successfully. Token invalidated.'
         };
     } catch (error) {
-        console.error('Revoke session error:', error);
+        await logAuditSafely({
+            eventType: 'AUTH_SESSION_REVOCATION_FAILED',
+            ipAddress,
+            details: {
+                reason: 'REVOCATION_OPERATION_FAILED'
+            }
+        });
+
+        console.error(
+            '[AUTH] Session revocation failed:',
+            error.message
+        );
 
         return {
             success: false,
