@@ -84,6 +84,20 @@ const findById = async (candidateId) => {
     return result.rows[0] || null;
 };
 
+const findByIdInHub = async (candidateId, testingHubId) => {
+    const result = await pool.query(
+        `
+        SELECT candidate_id
+        FROM candidate.candidates
+        WHERE candidate_id = $1
+          AND testing_hub_id = $2
+        `,
+        [candidateId, testingHubId]
+    );
+
+    return result.rows[0] || null;
+};
+
 const findByHub = async (testingHubId) => {
     const result = await pool.query(
         `
@@ -109,5 +123,6 @@ module.exports = {
     createCandidate,
     findByDedupHash,
     findById,
+    findByIdInHub,
     findByHub
 };

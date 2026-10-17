@@ -3,7 +3,7 @@
 **Audience:** Frontend team (Issuer Portal — Trade Tester + Superintendent screens)
 **Supersedes:** Guide #2 — read as a delta. Anything in Guide 2 not mentioned here still applies.
 **What's new since Guide 2:** the **Superintendent approval workflow is live** (queue / approve / reject), **S3 pre-signed photo uploads are live** for both candidate and assessment photos, assessment **media** endpoints exist, and assessment creation is now **offline-replay-safe**.
-**Still not ready (unchanged from Guide 2):** token refresh / revoke / backup codes (routes exist but return 500 — do not build against them), ledger/minting (`MINTED` status won't appear yet), public verification API, Super Admin screens.
+**Still not ready (unchanged from Guide 2):** token refresh / revoke / backup codes (routes exist but return 500 — do not build against them), Super Admin screens. The ledger endpoints now exist, but are not ready for production UI integration; see the [ledger integration guide](./ledger-frontend-integration.md) for their API contract and current security/readiness limitations.
 
 ---
 
@@ -191,13 +191,13 @@ This is the backend half of the SDD §6.2.4 offline flow (Figure 8): your Indexe
 | Enrolment, drafts, submit | IP-04 – IP-07 | ✅ (Guide 2) |
 | Backup-code recovery UI | IP-03 | ⛔ Still wait (endpoints 500) |
 | Auto-refresh on 401 | — | ⛔ Still wait |
-| Minting status / receipts | — | ⛔ Ledger module in build |
+| Ledger issue / approve / verify | — | ⚠️ API exists; review [ledger integration guide](./ledger-frontend-integration.md) before integrating |
 | Super Admin screens | IP-11 – IP-13 | ⛔ Wait |
 | Verifier DApp / wallet APIs | VD-*, WW-* | ⛔ Wait |
 
 ## 7. Coming in Guide 4 (plan ahead)
 
-1. **Minting status** — ledger module lands: `APPROVED` records will transition to `MINTED`; expect new fields (tx hash, credential id). Treat `status` as an open enum (already advised in Guide 2 — this is when it starts paying off).
+1. **Ledger status and receipts** — see the [ledger integration guide](./ledger-frontend-integration.md); queue status and transaction receipts are not currently exposed by a read API.
 2. **Token refresh + backup codes** — the 500-ing endpoints go live; 401 handling upgrades to "refresh once, then login."
 3. **Public verification API** — unlocks the Verifier DApp screens (VD-01–VD-03).
 

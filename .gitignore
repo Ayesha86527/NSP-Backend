@@ -3,9 +3,9 @@ node_modules/
 
 # Environment variables
 .env
-
+db/migrations/ledger/
 # Key folders and PEM files
-src/config/keys/
+
 keys/
 *.pem
 nsp-dev-key.pem

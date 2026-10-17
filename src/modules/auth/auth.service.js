@@ -51,7 +51,8 @@ const login = async (email, password) => {
      */
     if (
         user.role !== 'TRADE_TESTER' &&
-        user.role !== 'CENTER_SUPERINTENDENT'
+        user.role !== 'CENTER_SUPERINTENDENT' &&
+        user.role !== 'SUPER_ADMIN'
     ) {
         return {
             success: false,
@@ -157,7 +158,11 @@ const verifyMfa = async (
         return { success: false, message: 'Invalid user' };
     }
 
-    if (user.role !== 'TRADE_TESTER' && user.role !== 'CENTER_SUPERINTENDENT') {
+    if (
+        user.role !== 'TRADE_TESTER' &&
+        user.role !== 'CENTER_SUPERINTENDENT' &&
+        user.role !== 'SUPER_ADMIN'
+    ) {
         return { success: false, message: 'Access denied' };
     }
 

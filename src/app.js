@@ -4,6 +4,7 @@ const assessmentRoutes =
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const { processMintingQueue } = require('./modules/ledger/blockchain/relayer.js');
 
 const authRoutes = require('./modules/auth/auth.routes');
 const candidateRoutes = require('./modules/candidate/candidate.routes');
@@ -38,10 +39,13 @@ app.use('/api/verify', verificationRoutes);    // FR-VERI-xx (public, no auth mi
 
 // --- Error handling — must be last ---
 app.use(errorHandler);
-
+setInterval(() => {
+    processMintingQueue();
+}, 30000);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`NSP backend listening on port ${PORT}`);
+  
 });
 
 module.exports = app; // exported for testing
