@@ -42,9 +42,11 @@ app.use(errorHandler);
 setInterval(() => {
     processMintingQueue();
 }, 30000);
+//fixed // / 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`NSP backend listening on port ${PORT}`);
+
   
 });
 
