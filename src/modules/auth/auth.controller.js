@@ -1,4 +1,9 @@
+
 const authService = require('./auth.service');
+
+// ======================================================
+// LOGIN
+// ======================================================
 
 const login = async (req, res, next) => {
     try {
@@ -11,13 +16,11 @@ const login = async (req, res, next) => {
             });
         }
 
-        const ipAddress = req.ip;
-
-           const result = await authService.login(
-               email,
-               password,
-               ipAddress
-           );
+        const result = await authService.login(
+            email,
+            password,
+            req.ip
+        );
 
         if (!result.success) {
             return res.status(401).json(result);
@@ -28,6 +31,10 @@ const login = async (req, res, next) => {
         next(error);
     }
 };
+
+// ======================================================
+// VERIFY MFA
+// ======================================================
 
 const verifyMfa = async (req, res, next) => {
     try {
@@ -40,12 +47,10 @@ const verifyMfa = async (req, res, next) => {
             });
         }
 
-        const ipAddress = req.ip;
-
         const result = await authService.verifyMfa(
             email,
             mfaCode,
-            ipAddress
+            req.ip
         );
 
         if (!result.success) {
@@ -57,6 +62,10 @@ const verifyMfa = async (req, res, next) => {
         next(error);
     }
 };
+
+// ======================================================
+// REFRESH ACCESS TOKEN
+// ======================================================
 
 const refresh = async (req, res, next) => {
     try {
@@ -69,11 +78,9 @@ const refresh = async (req, res, next) => {
             });
         }
 
-        const ipAddress = req.ip;
-
         const result = await authService.refreshAccessToken(
             refreshToken,
-            ipAddress
+            req.ip
         );
 
         if (!result.success) {
@@ -85,6 +92,10 @@ const refresh = async (req, res, next) => {
         next(error);
     }
 };
+
+// ======================================================
+// REVOKE SESSION
+// ======================================================
 
 const revokeSession = async (req, res, next) => {
     try {
@@ -97,13 +108,9 @@ const revokeSession = async (req, res, next) => {
             });
         }
 
-        const ipAddress = req.ip;
-
         const result = await authService.revokeUserSession(
-            req.user.id,
-            req.user.email,
             refreshToken,
-            ipAddress
+            req.ip
         );
 
         if (!result.success) {
@@ -116,55 +123,49 @@ const revokeSession = async (req, res, next) => {
     }
 };
 
-const generateBackupCodes = async (
-    req,
-    res,
-    next
-) => {
-    try {
-        const ipAddress = req.ip;
+// ======================================================
+// GENERATE BACKUP CODES
+// ======================================================
 
+const generateBackupCodes = async (req, res, next) => {
+    try {
         const result = await authService.generateBackupCodes(
-            req.user.id,
-            req.user.email,
-            ipAddress
+            req.user.id
         );
 
         if (!result.success) {
             return res.status(409).json(result);
         }
 
+        // Plaintext backup codes are returned only at generation.
         return res.status(200).json(result);
     } catch (error) {
         next(error);
     }
 };
 
+// ======================================================
+// VERIFY BACKUP CODE
+// Requires email, password, and backupCode.
+// ======================================================
 
-const verifyBackupCode = async (
-    req,
-    res,
-    next
-) => {
+const verifyBackupCode = async (req, res, next) => {
     try {
-        const {
-            email,
-            backupCode
-        } = req.body;
+        const { email, password, backupCode } = req.body;
 
-        if (!email || !backupCode) {
+        if (!email || !password || !backupCode) {
             return res.status(400).json({
                 success: false,
-                message: 'Email and backup code are required'
+                message:
+                    'Email, password, and backup code are required'
             });
         }
 
-        const ipAddress = req.ip;
-
         const result = await authService.verifyBackupCode(
             email,
+            password,
             backupCode,
-            ipAddress
+            req.ip
         );
 
         if (!result.success) {
@@ -177,12 +178,11 @@ const verifyBackupCode = async (
     }
 };
 
+// ======================================================
+// BACKUP-CODE STATUS
+// ======================================================
 
-const backupCodeStatus = async (
-    req,
-    res,
-    next
-) => {
+const backupCodeStatus = async (req, res, next) => {
     try {
         const result =
             await authService.getUserBackupCodeStatus(
@@ -194,6 +194,10 @@ const backupCodeStatus = async (
         next(error);
     }
 };
+
+// ======================================================
+// EXPORT CONTROLLERS
+// ======================================================
 
 module.exports = {
     login,

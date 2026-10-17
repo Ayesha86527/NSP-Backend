@@ -151,9 +151,11 @@ const revokeSession = async (sessionId) => {
     );
 };
 
+
 const rotateRefreshToken = async (
     sessionId,
-    refreshTokenHash,
+    oldRefreshTokenHash,
+    newRefreshTokenHash,
     expiresAt,
     ipAddress
 ) => {
@@ -163,9 +165,11 @@ const rotateRefreshToken = async (
         SET
             refresh_token_hash = $1,
             expires_at = $2,
-            ip_address = $3,
-            revoked = FALSE
+            ip_address = $3
         WHERE session_id = $4
+          AND refresh_token_hash = $5
+          AND revoked = FALSE
+          AND expires_at > NOW()
         RETURNING
             session_id,
             user_id,
@@ -175,15 +179,17 @@ const rotateRefreshToken = async (
             revoked
         `,
         [
-            refreshTokenHash,
+            newRefreshTokenHash,
             expiresAt,
             ipAddress,
-            sessionId
+            sessionId,
+            oldRefreshTokenHash
         ]
     );
 
     return result.rows[0] || null;
 };
+
 
 module.exports = {
     findUserByEmail,
