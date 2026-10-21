@@ -61,17 +61,30 @@ const logAuditSafely = async ({
 
 const getAllowedAuthRole = (role) =>
     role === 'TRADE_TESTER' ||
-    role === 'CENTER_SUPERINTENDENT';
+    role === 'CENTER_SUPERINTENDENT' ||
+    role === 'SUPER_ADMIN';
 
 const getUserAuditDetails = (user) => ({
     role: user.role
 });
 
 // ======================================================
+// DEVICE FINGERPRINT RESOLVER (FR-AUTH-04)
+// ======================================================
+const resolveFingerprint = (deviceFingerprint, ipAddress = null) => {
+    if (deviceFingerprint && typeof deviceFingerprint === 'string' && deviceFingerprint.trim().length > 0) {
+        return deviceFingerprint.trim().toLowerCase();
+    }
+    const ip = ipAddress || '127.0.0.1';
+    return crypto.createHash('sha256').update(`fallback-ua|${ip}`).digest('hex');
+};
+
+
+// ======================================================
 // LOGIN: EMAIL + PASSWORD + ACCOUNT LOCKOUT
 // ======================================================
 
-const login = async (email, password, ipAddress = null) => {
+const login = async (email, password, ipAddress = null, deviceFingerprint = null) => {
     const user = await findUserByEmail(email);
 
     if (!user) {
@@ -158,18 +171,7 @@ const login = async (email, password, ipAddress = null) => {
         };
     }
 
-<<<<<<< HEAD
-    /*
-     * Both Trade Testers and Center Superintendents
-     * are allowed to use the portal.
-     */
-    if (
-        user.role !== 'TRADE_TESTER' &&
-        user.role !== 'CENTER_SUPERINTENDENT' &&
-        user.role !== 'SUPER_ADMIN'
-    ) {
-=======
-    if (!getAllowedAuthRole(user.role)) {
+if (!getAllowedAuthRole(user.role)) {
         await logAuditSafely({
             userId: user.user_id,
             eventType: 'AUTH_LOGIN_DENIED',
@@ -181,7 +183,6 @@ const login = async (email, password, ipAddress = null) => {
             }
         });
 
->>>>>>> 375fda34684a4301648a693eda65b3b00190d006
         return {
             success: false,
             message: 'Access denied'
@@ -285,7 +286,7 @@ const decryptMfaSecret = (encryptedSecret) => {
 // VERIFY MFA + CREATE SESSION
 // ======================================================
 
-const verifyMfa = async (email, mfaCode, ipAddress = null) => {
+const verifyMfa = async (email, mfaCode, ipAddress = null, deviceFingerprint = null) => {
     const user = await findUserForMfa(email);
 
     if (!user) {
@@ -306,13 +307,6 @@ const verifyMfa = async (email, mfaCode, ipAddress = null) => {
     }
 
     if (
-<<<<<<< HEAD
-        user.role !== 'TRADE_TESTER' &&
-        user.role !== 'CENTER_SUPERINTENDENT' &&
-        user.role !== 'SUPER_ADMIN'
-    ) {
-        return { success: false, message: 'Access denied' };
-=======
         user.locked_until &&
         new Date(user.locked_until) > new Date()
     ) {
@@ -348,7 +342,6 @@ const verifyMfa = async (email, mfaCode, ipAddress = null) => {
             success: false,
             message: 'Access denied'
         };
->>>>>>> 375fda34684a4301648a693eda65b3b00190d006
     }
 
     if (!user.is_mfa_active) {
@@ -461,14 +454,17 @@ const verifyMfa = async (email, mfaCode, ipAddress = null) => {
         Date.now() + 7 * 24 * 60 * 60 * 1000
     );
 
+    const resolvedFingerprint = resolveFingerprint(deviceFingerprint, ipAddress);
+
     await pool.query(
         `INSERT INTO auth.sessions
-            (user_id, refresh_token_hash, ip_address, expires_at, revoked)
-         VALUES ($1, $2, $3, $4, FALSE)`,
+            (user_id, refresh_token_hash, ip_address, device_fingerprint, expires_at, revoked)
+         VALUES ($1, $2, $3, $4, $5, FALSE)`,
         [
             user.user_id,
             refreshTokenHash,
             ipAddress || '127.0.0.1',
+            resolvedFingerprint,
             expiresAt
         ]
     );
@@ -480,7 +476,8 @@ const verifyMfa = async (email, mfaCode, ipAddress = null) => {
         ipAddress,
         details: {
             method: 'TOTP',
-            result: 'SUCCESS'
+            result: 'SUCCESS',
+            deviceFingerprint: resolvedFingerprint
         }
     });
 
@@ -490,7 +487,8 @@ const verifyMfa = async (email, mfaCode, ipAddress = null) => {
         email: user.email,
         ipAddress,
         details: {
-            method: 'MFA'
+            method: 'MFA',
+            deviceFingerprint: resolvedFingerprint
         }
     });
 
@@ -588,7 +586,8 @@ const verifyBackupCode = async (
     email,
     password,
     backupCode,
-    ipAddress = null
+    ipAddress = null,
+    deviceFingerprint = null
 ) => {
     const user = await findUserByEmail(email);
 
@@ -756,14 +755,17 @@ const verifyBackupCode = async (
         Date.now() + 7 * 24 * 60 * 60 * 1000
     );
 
+    const resolvedFingerprint = resolveFingerprint(deviceFingerprint, ipAddress);
+
     await pool.query(
         `INSERT INTO auth.sessions
-            (user_id, refresh_token_hash, ip_address, expires_at, revoked)
-         VALUES ($1, $2, $3, $4, FALSE)`,
+            (user_id, refresh_token_hash, ip_address, device_fingerprint, expires_at, revoked)
+         VALUES ($1, $2, $3, $4, $5, FALSE)`,
         [
             user.user_id,
             refreshTokenHash,
             ipAddress || '127.0.0.1',
+            resolvedFingerprint,
             expiresAt
         ]
     );
@@ -775,7 +777,8 @@ const verifyBackupCode = async (
         ipAddress,
         details: {
             method: 'BACKUP_CODE',
-            result: 'SUCCESS'
+            result: 'SUCCESS',
+            deviceFingerprint: resolvedFingerprint
         }
     });
 
@@ -785,7 +788,8 @@ const verifyBackupCode = async (
         email: user.email,
         ipAddress,
         details: {
-            method: 'BACKUP_CODE'
+            method: 'BACKUP_CODE',
+            deviceFingerprint: resolvedFingerprint
         }
     });
 
@@ -826,7 +830,8 @@ const getUserBackupCodeStatus = async (userId) => {
 
 const refreshAccessToken = async (
     refreshToken,
-    ipAddress = null
+    ipAddress = null,
+    deviceFingerprint = null
 ) => {
     let auditUser = null;
 
@@ -863,6 +868,26 @@ const refreshAccessToken = async (
 
         auditUser = user;
 
+        const resolvedFingerprint = resolveFingerprint(deviceFingerprint, ipAddress);
+
+        // Phase 1 Device Fingerprint Validation (FR-AUTH-04)
+        // If session was bound to a fingerprint and incoming differs, log anomaly
+        // but do not terminate/reject session (non-disruptive Phase 1).
+        if (session.device_fingerprint && session.device_fingerprint !== resolvedFingerprint) {
+            await logAuditSafely({
+                userId: user.user_id,
+                eventType: 'AUTH_DEVICE_MISMATCH',
+                email: user.email,
+                ipAddress,
+                details: {
+                    storedFingerprint: session.device_fingerprint,
+                    incomingFingerprint: resolvedFingerprint,
+                    mode: 'PHASE_1_AUDIT_ONLY',
+                    action: 'ALLOWED'
+                }
+            });
+        }
+
         // Generate a new refresh token; only its hash is stored.
         const newRefreshToken = crypto
             .randomBytes(40)
@@ -882,7 +907,8 @@ const refreshAccessToken = async (
             refreshTokenHash,
             newRefreshTokenHash,
             newExpiresAt,
-            ipAddress || session.ip_address || '127.0.0.1'
+            ipAddress || session.ip_address || '127.0.0.1',
+            resolvedFingerprint
         );
 
         if (!rotatedSession) {
@@ -909,7 +935,8 @@ const refreshAccessToken = async (
             email: user.email,
             ipAddress,
             details: {
-                result: 'SUCCESS'
+                result: 'SUCCESS',
+                deviceFingerprint: resolvedFingerprint
             }
         });
 

@@ -1,0 +1,15 @@
+﻿
+
+======== TOR ========
+Pages: 15
+ERROR: 'charmap' codec can't encode character '\uf0b7' in position 574: character maps to <undefined>
+
+
+======== SDD ========
+Pages: 64
+ERROR: 'charmap' codec can't encode character '\u2192' in position 1268: character maps to <undefined>
+
+
+======== SRS ========
+Pages: 20
+ERROR: 'charmap' codec can't encode character '\u25cf' in position 6048: character maps to <undefined>

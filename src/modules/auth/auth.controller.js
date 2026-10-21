@@ -1,5 +1,20 @@
-
+const crypto = require('crypto');
 const authService = require('./auth.service');
+
+// ======================================================
+// DEVICE FINGERPRINT EXTRACTOR (FR-AUTH-04)
+// Extracts client fingerprint header (x-device-fingerprint)
+// or calculates deterministic SHA-256 fallback from UA + IP.
+// ======================================================
+const getDeviceFingerprint = (req) => {
+    const headerFp = req.headers['x-device-fingerprint'];
+    if (headerFp && typeof headerFp === 'string' && headerFp.trim().length > 0) {
+        return headerFp.trim().toLowerCase();
+    }
+    const ua = req.headers['user-agent'] || 'unknown-ua';
+    const ip = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    return crypto.createHash('sha256').update(`${ua}|${ip}`).digest('hex');
+};
 
 // ======================================================
 // LOGIN
@@ -16,10 +31,13 @@ const login = async (req, res, next) => {
             });
         }
 
+        const deviceFingerprint = getDeviceFingerprint(req);
+
         const result = await authService.login(
             email,
             password,
-            req.ip
+            req.ip,
+            deviceFingerprint
         );
 
         if (!result.success) {
@@ -47,10 +65,13 @@ const verifyMfa = async (req, res, next) => {
             });
         }
 
+        const deviceFingerprint = getDeviceFingerprint(req);
+
         const result = await authService.verifyMfa(
             email,
             mfaCode,
-            req.ip
+            req.ip,
+            deviceFingerprint
         );
 
         if (!result.success) {
@@ -78,9 +99,12 @@ const refresh = async (req, res, next) => {
             });
         }
 
+        const deviceFingerprint = getDeviceFingerprint(req);
+
         const result = await authService.refreshAccessToken(
             refreshToken,
-            req.ip
+            req.ip,
+            deviceFingerprint
         );
 
         if (!result.success) {
@@ -161,11 +185,14 @@ const verifyBackupCode = async (req, res, next) => {
             });
         }
 
+        const deviceFingerprint = getDeviceFingerprint(req);
+
         const result = await authService.verifyBackupCode(
             email,
             password,
             backupCode,
-            req.ip
+            req.ip,
+            deviceFingerprint
         );
 
         if (!result.success) {

@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NSP Backend — 2-Week Product Roadmap</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 14mm 14mm 14mm 14mm;
+    }
+    *, *:before, *:after {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      line-height: 1.4;
+      font-size: 9.5pt;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+    .page {
+      page-break-after: always;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .page:last-child {
+      page-break-after: avoid;
+    }
+    .header {
+      border-bottom: 2.5px solid #2563eb;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .header h1 {
+      font-size: 17pt;
+      margin: 0 0 4px 0;
+      color: #0f172a;
+      letter-spacing: -0.4px;
+      font-weight: 700;
+    }
+    .meta-bar {
+      display: flex;
+      justify-content: space-between;
+      font-size: 8.5pt;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .badges {
+      float: right;
+      display: flex;
+      gap: 6px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-amber { background: #fef3c7; color: #92400e; }
+    .badge-purple { background: #f3e8ff; color: #6b21a8; }
+    
+    h2 {
+      font-size: 11.5pt;
+      color: #1e3a8a;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 3px;
+      margin-top: 12px;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    h3 {
+      font-size: 9.5pt;
+      color: #0f172a;
+      margin-top: 8px;
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+    
+    .callout {
+      background: #eff6ff;
+      border-left: 3.5px solid #3b82f6;
+      padding: 8px 12px;
+      border-radius: 0 4px 4px 0;
+      margin: 8px 0;
+      font-size: 8.5pt;
+      color: #1e3a8a;
+    }
+    .callout-amber {
+      background: #fffbeb;
+      border-left: 3.5px solid #f59e0b;
+      color: #92400e;
+    }
+    .callout-green {
+      background: #f0fdf4;
+      border-left: 3.5px solid #16a34a;
+      color: #166534;
+    }
+    
+    .team-split {
+      display: table;
+      width: 100%;
+      margin: 8px 0;
+      border-spacing: 10px 0;
+      margin-left: -10px;
+      margin-right: -10px;
+    }
+    .team-col {
+      display: table-cell;
+      width: 50%;
+      vertical-align: top;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+    .team-col.track-a { border-top: 3.5px solid #2563eb; }
+    .team-col.track-b { border-top: 3.5px solid #0d9488; }
+    
+    .two-col-days {
+      display: table;
+      width: 100%;
+      border-spacing: 10px 0;
+      margin-left: -10px;
+      margin-right: -10px;
+    }
+    .day-col {
+      display: table-cell;
+      width: 50%;
+      vertical-align: top;
+    }
+    .day-box {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 5px;
+      padding: 7px 10px;
+      margin-bottom: 7px;
+    }
+    .day-box-title {
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .day-box-title .tag {
+      font-size: 7pt;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    
+    ul {
+      margin: 2px 0 2px 0;
+      padding-left: 15px;
+    }
+    li {
+      margin-bottom: 3px;
+      font-size: 8pt;
+      color: #334155;
+    }
+    li strong {
+      color: #0f172a;
+    }
+    
+    .task-id {
+      font-family: Consolas, monospace;
+      font-weight: 700;
+      color: #0284c7;
+      font-size: 7.5pt;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6px 0;
+      font-size: 8pt;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 5px 7px;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      color: #1e293b;
+      font-weight: 700;
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+    
+    .footer {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 6px;
+      font-size: 7.5pt;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== PAGE 1 ==================== -->
+  <div class="page">
+    <div>
+      <div class="header">
+        <div class="badges">
+          <span class="badge badge-blue">14-Day Delivery</span>
+          <span class="badge badge-green">4 Engineers (2x2)</span>
+          <span class="badge badge-purple">Target: 100% Ready</span>
+        </div>
+        <h1>NSP Backend — 2-Week Production Roadmap</h1>
+        <div class="meta-bar">
+          <span><strong>Project:</strong> National Skills Passport (NSP-Backend)</span>
+          <span><strong>Governing Documents:</strong> Project TOR · SDD v2.1 · Technical SRS v2.1</span>
+          <span><strong>Team Size:</strong> 4 Developers (2 Sub-Teams)</span>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Strategic Mission:</strong> Elevate the backend from current ~40% completion to 100% production readiness in exactly 14 calendar days. Work is bifurcated into two mutually exclusive, parallel tracks with strict module boundaries to guarantee zero git collisions.
+      </div>
+
+      <h2>Architecture Context & Flow Overview</h2>
+      <p style="font-size: 8.5pt; margin: 4px 0 8px 0; color: #475569;">
+        The system is a <strong>Modular Monolith</strong> in Node.js/Express with schema isolation (PostgreSQL schemas: <code>auth</code>, <code>candidate</code>, <code>ledger</code>). Modules communicate strictly via internal interfaces and an in-process <code>eventBus</code>:
+      </p>
+      <div style="background: #f1f5f9; padding: 7px 10px; border-radius: 5px; font-family: Consolas, monospace; font-size: 7.5pt; color: #334155; margin-bottom: 10px; border: 1px solid #e2e8f0;">
+        Trade Tester/Supt &rarr; [Auth Module: RS256/MFA] &rarr; [Candidate Module: Intake/Media/Approval] &rarr; (eventBus: assessment.approved)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&rarr; [Ledger Module: W3C VC &rarr; SHA-256 &rarr; Polygon Relayer] &rarr; Polygon Amoy Smart Contract<br>
+        External Employers &rarr; [Public Verification Module: Hash Reconciliation &lt; 2.0s] &rarr; [Valid / Tampered / Revoked]
+      </div>
+
+      <h2>Sub-Team Structure & Domain Ownership</h2>
+      <div class="team-split">
+        <div class="team-col track-a">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="badge badge-blue">TRACK A &bull; 2 DEVELOPERS</span>
+            <span style="font-size: 7.5pt; font-weight: 700; color: #1e40af;">Dev 1 & Dev 2</span>
+          </div>
+          <h3 style="color: #1d4ed8; margin-top: 4px;">Trust Anchor, Ledger & Verification</h3>
+          <p style="font-size: 8pt; margin: 3px 0 6px 0; color: #475569;">
+            Responsible for the cryptographic anchoring, W3C Verifiable Credentials, Polygon smart contract relayer, minting queue, and the public verification engine.
+          </p>
+          <div style="font-size: 7.5pt; background: #fff; padding: 5px 8px; border-radius: 4px; border: 1px solid #cbd5e1;">
+            <strong>Exclusively Owned Codebase:</strong><br>
+            &bull; <code>src/modules/ledger/</code> (service, model, controller, routes)<br>
+            &bull; <code>src/modules/ledger/blockchain/</code> (contract.js, relayer.js)<br>
+            &bull; <code>src/modules/verification/</code> (service, controller, routes)<br>
+            &bull; <code>contract/</code> (Solidity integration & deployment scripts)
+          </div>
+        </div>
+
+        <div class="team-col track-b">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="badge badge-green">TRACK B &bull; 2 DEVELOPERS</span>
+            <span style="font-size: 7.5pt; font-weight: 700; color: #0f766e;">Dev 3 & Dev 4</span>
+          </div>
+          <h3 style="color: #0f766e; margin-top: 4px;">Auth Hardening, EventBus & Data Foundation</h3>
+          <p style="font-size: 8pt; margin: 3px 0 6px 0; color: #475569;">
+            Responsible for patching critical authentication bugs, in-process EventBus, PostgreSQL DDL migrations, production NADRA API client, and security hardening.
+          </p>
+          <div style="font-size: 7.5pt; background: #fff; padding: 5px 8px; border-radius: 4px; border: 1px solid #cbd5e1;">
+            <strong>Exclusively Owned Codebase:</strong><br>
+            &bull; <code>src/modules/auth/</code> (service, model, controller, routes, middleware)<br>
+            &bull; <code>src/modules/candidate/</code> (candidate, assessment, s3, nadra)<br>
+            &bull; <code>src/events/eventBus.js</code> (In-process event bus)<br>
+            &bull; <code>src/config/</code>, <code>middleware/</code>, & <code>migrations/</code>
+          </div>
+        </div>
+      </div>
+
+      <h2>Collaboration Rules & Zero-Collision Protocol</h2>
+      <ul>
+        <li><strong>Strict File Boundaries:</strong> Neither track touches files outside their assigned directories. No joint file editing.</li>
+        <li><strong>Interface Contracts First:</strong> The interface between Track A and Track B is purely the event payload emitted by <code>eventBus.emit('assessment.approved', payload)</code>. That JSON contract is frozen on Day 1.</li>
+        <li><strong>Daily Standup (9:30 AM):</strong> 15-minute sync focusing exclusively on blockers and interface adherence.</li>
+      </ul>
+    </div>
+
+    <div class="footer">
+      <span>NSP Backend Engineering Roadmap &bull; Page 1 of 4</span>
+      <span>Confidential &bull; Single Source of Truth Alignment</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 2 ==================== -->
+  <div class="page">
+    <div>
+      <div class="header">
+        <div class="badges">
+          <span class="badge badge-amber">Phase 1 &bull; Days 1 to 5</span>
+          <span class="badge badge-blue">Foundation & Engine Build</span>
+        </div>
+        <h1>Week 1: Core Engine Construction & Critical Fixes</h1>
+        <div class="meta-bar">
+          <span><strong>Objective:</strong> Fix all auth security bugs, establish EventBus, and build the blockchain minting & verification engine.</span>
+        </div>
+      </div>
+
+      <div class="two-col-days">
+        <!-- TRACK A -->
+        <div class="day-col">
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 4px 8px; border-radius: 4px; margin-bottom: 6px;">
+            <strong style="color: #1e40af; font-size: 8.5pt;">TRACK A: Ledger & Verification Engine</strong>
+          </div>
+
+          <div class="day-box">
+            <div class="day-box-title">
+              <span>Days 1–2: Database Models & W3C Credential Compiler</span>
+              <span class="tag badge-blue">Days 1-2</span>
+            </div>
+            <ul>
+              <li><span class="task-id">[FR-LEDG-01]</span> Implement <code>ledger.model.js</code> with SQL queries for <code>minting_queue</code> and <code>credentials</code> tables per SDD §5.3.3.</li>
+              <li><span class="task-id">[FR-LEDG-01]</span> Build W3C Verifiable Credential & Blockcerts JSON payload compiler in <code>ledger.service.js</code>.</li>
+              <li><span class="task-id">[FR-LEDG-02]</span> Implement canonical SHA-256 root digest generator for on-chain anchoring.</li>
+            </ul>
+          </div>
+
+          <div class="day-box">
+            <div class="day-box-title">
+              <span>Days 3–4: Polygon Relayer & Minting Pipeline</span>
+              <span class="tag badge-blue">Days 3-4</span>
+            </div>
+            <ul>
+              <li><span class="task-id">[FR-CHAIN-01]</span> Wire <code>blockchain/contract.js</code> to <code>CertificateLogic</code> contract on Polygon Amoy testnet.</li>
+              <li><span class="task-id">[FR-LEDG-03]</span> Build pre-funded gas relayer in <code>blockchain/relayer.js</code> with ethers.js to broadcast transactions.</li>
+              <li><span class="task-id">[FR-LEDG-04]</span> Implement mint queue state machine: <code>QUEUED</code> &rarr; <code>BROADCASTED</code> &rarr; <code>CONFIRMED</code> / <code>FAILED</code>.</li>
+              <li><span class="task-id">[FR-CAND-08]</span> Update <code>assessment_records.status = 'MINTED'</code> upon on-chain receipt confirmation.</li>
+            </ul>
+          </div>
+
+          <div class="day-box">
+            <div class="day-box-title">
+              <span>Day 5: Public Verification Service & Route</span>
+              <span class="tag badge-blue">Day 5</span>
+            </div>
+            <ul>
+              <li><span class="task-id">[FR-VERI-01]</span> Implement public route <code>GET /api/verify/:credentialId</code> without login.</li>
+              <li><span class="task-id">[FR-VERI-03]</span> Build hash reconciliation: fetch off-chain metadata, recalculate SHA-256, query contract for anchored hash.</li>
+              <li><span class="task-id">[FR-VERI-04]</span> Implement 3-state output: <code>VALID</code>, <code>TAMPERED</code>, <code>REVOKED</code>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- TRACK B -->
+        <div class="day-col">
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 4px 8px; border-radius: 4px; margin-bottom: 6px;">
+            <strong style="color: #166534; font-size: 8.5pt;">TRACK B: Auth Hardening & Platform Foundation</strong>
+          </div>
+
+          <div class="day-box">
+            <div class="day-box-title">
+              <span>Days 1–2: Auth Vulnerabilities & Route Fixes</span>
+              <span class="tag badge-green">Days 1-2</span>
+            </div>
+            <ul>
+              <li><span class="task-id">[FR-AUTH-06]</span> Fix account lockout: check <code>user.locked_until > now()</code> in <code>auth.service.js:login</code>; call <code>recordFailedLogin()</code> (5 attempts = 15m lock) and <code>resetFailedLoginAttempts()</code>.</li>
+              <li><span class="task-id">[FR-AUTH-08]</span> Implement & export <code>generateBackupCodes</code> and <code>getUserBackupCodeStatus</code> in <code>auth.service.js</code> (stops route crash).</li>
+              <li><span class="task-id">[FR-AUTH-02]</span> Implement refresh token rotation in <code>refreshAccessToken()</code> using <code>rotateRefreshToken()</code>.</li>
+              <li><span class="task-id">[FR-AUTH-04]</span> Extract <code>x-device-fingerprint</code> and persist in <code>auth.sessions</code>.</li>
+            </ul>
+          </div>
+
+          <div class="day-box">
+            <div class="day-box-title">
+              <span>Day 3: In-Process EventBus & Audit Trails</span>
+              <span class="tag badge-green">Day 3</span>
+            </div>
+            <ul>
+              <li><span class="task-id">[SDD §3.3]</span> Implement <code>src/events/eventBus.js</code> as an in-process <code>EventEmitter</code> singleton with error isolation.</li>
+              <li><span class="task-id">[FR-AUTH-07]</span> Wire <code>createAuditLog()</code> to log all login attempts, MFA challenges, failures, and revocations.</li>
+              <li><span class="task-id">[FR-AUTH-05]</span> Implement Super Admin session revocation endpoint for lost/stolen hub laptops.</li>
+            </ul>
+          </div>
+
+          <div class="day-box">
+            <div class="day-box-title">
+              <span>Days 4–5: Database DDL Migrations & Candidate Validations</span>
+              <span class="tag badge-green">Days 4-5</span>
+            </div>
+            <ul>
+              <li><span class="task-id">[SDD §5]</span> Write complete PostgreSQL DDL migration script for <code>auth</code>, <code>candidate</code>, and <code>ledger</code> schemas with constraints and indexes.</li>
+              <li><span class="task-id">[FR-CAND-01]</span> Enforce 60-candidate enrolment quota check per hub in <code>candidate.service.js</code>.</li>
+              <li><span class="task-id">[FR-CAND-02A]</span> Integrate production NADRA verification API adapter in <code>nadra/nadra.service.js</code>.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-green" style="margin-top: 4px;">
+        <strong>Week 1 Exit Criteria (Friday EOD):</strong> All auth crash bugs eliminated; account lockout verified active; EventBus singleton operational; full W3C credential compiled and successfully minted to Polygon testnet via relayer script; public verify endpoint functional.
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>NSP Backend Engineering Roadmap &bull; Page 2 of 4</span>
+      <span>Confidential &bull; Single Source of Truth Alignment</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 3 ==================== -->
+  <div class="page">
+    <div>
+      <div class="header">
+        <div class="badges">
+          <span class="badge badge-purple">Phase 2 &bull; Days 6 to 10</span>
+          <span class="badge badge-green">Integration & Performance</span>
+        </div>
+        <h1>Week 2: Integration, Performance, Testing & Launch</h1>
+        <div class="meta-bar">
+          <span><strong>Objective:</strong> Connect the approval-to-mint handshake, tune performance, lock security, and achieve 100% test coverage.</span>
+        </div>
+      </div>
+
+      <div class="callout callout-amber">
+        <strong>Week 2 Monday Handshake (10:00 AM Sync):</strong><br>
+        Track B's <code>approveAssessment()</code> emits <code>eventBus.emit('assessment.approved', payload)</code> &rarr; Track A's <code>eventBus.on('assessment.approved')</code> catches the payload, enqueues in <code>minting_queue</code>, compiles W3C VC, and triggers the on-chain relayer automatically.
+      </div>
+
+      <div class="two-col-days">
+        <!-- TRACK A -->
+        <div class="day-col">
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 4px 8px; border-radius: 4px; margin-bottom: 6px;">
+            <strong style="color: #1e40af; font-size: 8.5pt;">TRACK A: Verification Performance & Blockchain Ops</strong>
+          </div>
+
+          <div class="day-box">
+            <div class="day-box-title">
+              <span>Days 6–7: Redis Caching & Revocation Flow</span>
+              <span class="tag badge-blue">Days 6-7</span>
+            </div>
+            <ul>
+              <li><span class="task-id">[FR-VERI-05]</span> Integrate Redis cache into <code>verification.service.js</code> with short TTL to guarantee <strong>&lt; 2.0s</strong> response time (<span class="task-id">[NFR-PER-01]</span>).</li>
+              <li><span class="task-id">[FR-LEDG-05]</span> Implement <code>POST /api/ledger/:credentialId/revoke</code> (Super Admin + step-up MFA + mandatory reason). Flags off-chain status while preserving on-chain history.</li>
+              <li><span class="task-id">[FR-ISS-06]</span> Expose queue health & metrics endpoint (pending, confirmed, failed) for Super Admin monitoring.</li>
+            </ul>
+          </div>
+
+          <div class="day-box">
+            <div class="day-box-title">
+              <span>Days 8–9: Blockchain Resilience & Load Testing</span>
+              <span class="tag badge-blue">Days 8-9</span>
+            </div>
+            <ul>
+              <li><span class="task-id">[FR-CHAIN-07]</span> Implement balance checks and low-gas alert thresholds on the relayer wallet.</li>
+              <li><span class="task-id">[FR-LEDG-06]</span> Implement exponential backoff retry worker for failed mint transactions.</li>
+              <li>Build automated tamper detection test: mutating 1 char in PostgreSQL causes <code>verifyCredential</code> to output <code>TAMPERED</code>.</li>
+            </ul>
+          </div>
+
+          <div class="day-box">
+            <div class="day-box-title">
+              <span>Day 10: Contract ABI Handover & Code Freeze</span>
+              <span class="tag badge-blue">Day 10</span>
+            </div>
+            <ul>
+              <li>Verify public lookup response latency &lt; 2.0s under load.</li>
+              <li>Finalize smart contract addresses, ABI, and API schemas for Issuer Portal & Verifier DApp frontend teams.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- TRACK B -->
+        <div class="day-col">
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 4px 8px; border-radius: 4px; margin-bottom: 6px;">
+            <strong style="color: #166534; font-size: 8.5pt;">TRACK B: Security Hardening & End-to-End Tests</strong>
+          </div>
+
+          <div class="day-box">
+            <div class="day-box-title">
+              <span>Days 6–7: Connection Tuning & Rate Limiting</span>
+              <span class="tag badge-green">Days 6-7</span>
+            </div>
+            <ul>
+              <li><span class="task-id">[NFR-PER-04]</span> Configure PostgreSQL connection pool parameters in <code>db.js</code> (<code>max: 20</code>, <code>idleTimeoutMillis: 30000</code>).</li>
+              <li><span class="task-id">[NFR-SEC-01]</span> Restrict CORS origins in <code>app.js</code> to authorized Issuer Portal and Verifier DApp domains.</li>
+              <li><span class="task-id">[NFR-PER-02]</span> Apply strict per-route rate limiters on <code>/api/auth/*</code> and public verification (60 req/min).</li>
+              <li>Implement strict startup environment variable validator (fail-fast on missing keys).</li>
+            </ul>
+          </div>
+
+          <div class="day-box">
+            <div class="day-box-title">
+              <span>Days 8–9: End-to-End Automated Test Suite</span>
+              <span class="tag badge-green">Days 8-9</span>
+            </div>
+            <ul>
+              <li>Build automated Jest/Supertest integration test covering full 5-stage lifecycle:
+                <br><em>Enrol Candidate &rarr; Score Draft &rarr; Submit &rarr; Superintendent Approve &rarr; Relayer Mint &rarr; Public Verify</em>.</li>
+              <li>Test offline queue idempotency replaying <code>clientRequestId</code>.</li>
+              <li>Test assessment rejection workflow (<code>SUBMITTED</code> &rarr; <code>REJECTED</code> &rarr; <code>DRAFT</code>).</li>
+            </ul>
+          </div>
+
+          <div class="day-box">
+            <div class="day-box-title">
+              <span>Day 10: Production Runbook & Seed Scripts</span>
+              <span class="tag badge-green">Day 10</span>
+            </div>
+            <ul>
+              <li>Create <code>scripts/seedHubs.js</code> to initialize the 5 testing points with Trade Tester & Superintendent accounts.</li>
+              <li>Provide verified <code>.env.production.example</code> and backend deployment runbook.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-green" style="margin-top: 4px;">
+        <strong>Week 2 Exit Criteria (Friday EOD):</strong> End-to-end automated test suite green; public verification verified &lt; 2.0s; gas relayer auto-minting confirmed on Polygon; 100% production ready for deployment.
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>NSP Backend Engineering Roadmap &bull; Page 3 of 4</span>
+      <span>Confidential &bull; Single Source of Truth Alignment</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 4 ==================== -->
+  <div class="page">
+    <div>
+      <div class="header">
+        <div class="badges">
+          <span class="badge badge-blue">Tracking & DoD</span>
+          <span class="badge badge-purple">Final Sign-off</span>
+        </div>
+        <h1>Master Daily Matrix & Definition of Done</h1>
+        <div class="meta-bar">
+          <span>Execution Matrix, Acceptance Criteria & Emergency Risk Protocol</span>
+        </div>
+      </div>
+
+      <h2>10-Day Standup & Checkpoint Tracking Matrix</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 10%;">Day</th>
+            <th style="width: 38%;">Track A Deliverable (Dev 1 & 2)</th>
+            <th style="width: 38%;">Track B Deliverable (Dev 3 & 4)</th>
+            <th style="width: 14%;">Verification Checkpoint</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Day 1</strong></td>
+            <td><code>ledger.model.js</code> complete (queue + credentials)</td>
+            <td>Account lockout & backup code fixes in <code>auth.service.js</code></td>
+            <td>Auth routes stop crashing</td>
+          </tr>
+          <tr>
+            <td><strong>Day 2</strong></td>
+            <td>W3C VC JSON builder & SHA-256 root hash logic</td>
+            <td>Refresh token rotation & device fingerprinting</td>
+            <td>Auth 100% compliant</td>
+          </tr>
+          <tr>
+            <td><strong>Day 3</strong></td>
+            <td>Ethers.js contract connection initialized</td>
+            <td><code>src/events/eventBus.js</code> implemented & audit logging</td>
+            <td>EventBus ready</td>
+          </tr>
+          <tr>
+            <td><strong>Day 4</strong></td>
+            <td>Relayer auto-submitting mint transactions</td>
+            <td>Full SQL DDL migration script & 60-quota check</td>
+            <td>DB Schema frozen</td>
+          </tr>
+          <tr>
+            <td><strong>Day 5</strong></td>
+            <td>Public verification service logic complete</td>
+            <td>NADRA production adapter integration</td>
+            <td><strong>Core Code In Place</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Day 6</strong></td>
+            <td><strong>HANDSHAKE:</strong> Event triggers auto-mint</td>
+            <td><strong>HANDSHAKE:</strong> Event emitted on approval</td>
+            <td><strong>Auto-Minting Verified</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Day 7</strong></td>
+            <td>Redis caching integrated (&lt; 2.0s response)</td>
+            <td>CORS restricted & connection pool tuned</td>
+            <td>Performance tuned</td>
+          </tr>
+          <tr>
+            <td><strong>Day 8</strong></td>
+            <td>Revocation endpoint & queue metrics API</td>
+            <td>Per-route rate limiters & env var boot validation</td>
+            <td>Security locked</td>
+          </tr>
+          <tr>
+            <td><strong>Day 9</strong></td>
+            <td>Polygon retry worker & gas monitoring</td>
+            <td>End-to-End integration test suite passing</td>
+            <td>Testing complete</td>
+          </tr>
+          <tr>
+            <td><strong>Day 10</strong></td>
+            <td><strong>Final Code Freeze & Contract ABI Handover</strong></td>
+            <td><strong>Production Seed Scripts & Deployment Runbook</strong></td>
+            <td><strong>100% READY</strong></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Backend Definition of Done (DoD) Criteria</h2>
+      <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 5px; padding: 6px 10px; margin-bottom: 8px;">
+        <ul style="margin: 0; padding-left: 15px;">
+          <li><strong>Zero Runtime Exceptions:</strong> No unhandled promise rejections or <code>TypeError</code> crashes across all endpoints.</li>
+          <li><strong>Zero PII On-Chain:</strong> Personal data strictly off-chain; CNIC salted and hashed before persistence (<span class="task-id">[NFR-SEC-03]</span>).</li>
+          <li><strong>End-to-End Lifecycle Verified:</strong> Enrolment &rarr; Scoring &rarr; Approval &rarr; Relayer Mint &rarr; Public Verification fully functional.</li>
+          <li><strong>SLA Verification Compliance:</strong> Public lookup via <code>/api/verify/:credentialId</code> returns within <strong>&lt; 2.0 seconds</strong> (<span class="task-id">[NFR-PER-01]</span>).</li>
+          <li><strong>Security Baselines:</strong> RS256 JWT, rate limits on all endpoints (60 req/min), CORS restricted, Helmet security headers enabled.</li>
+        </ul>
+      </div>
+
+      <h2>Contingency & Risk Mitigation Matrix</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 28%;">Risk Scenario</th>
+            <th style="width: 32%;">System Impact</th>
+            <th style="width: 40%;">Backend Architectural Mitigation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Polygon RPC Gas Spikes</strong></td>
+            <td>Mint transaction stalls in mempool</td>
+            <td>Relayer implements dynamic gas fee multiplier and bounded retry queue (<span class="task-id">[FR-LEDG-06]</span>).</td>
+          </tr>
+          <tr>
+            <td><strong>NADRA Service Outage</strong></td>
+            <td>Candidate enrolment blocked at hub</td>
+            <td>Return HTTP 503 with standardized error; allow offline queueing via client-side IndexedDB (<span class="task-id">[FR-CAND-04]</span>).</td>
+          </tr>
+          <tr>
+            <td><strong>Public Verification Spike / DDoS</strong></td>
+            <td>API overload, slow lookups</td>
+            <td>Enforce 60 req/min/IP rate limiter + Redis cache with 60-second TTL (<span class="task-id">[FR-VERI-05]</span>, <span class="task-id">[NFR-PER-02]</span>).</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      <span>NSP Backend Engineering Roadmap &bull; Page 4 of 4</span>
+      <span>Confidential &bull; Single Source of Truth Alignment</span>
+    </div>
+  </div>
+
+</body>
+</html>

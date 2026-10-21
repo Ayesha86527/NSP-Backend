@@ -157,7 +157,8 @@ const rotateRefreshToken = async (
     oldRefreshTokenHash,
     newRefreshTokenHash,
     expiresAt,
-    ipAddress
+    ipAddress,
+    deviceFingerprint = null
 ) => {
     const result = await pool.query(
         `
@@ -165,7 +166,8 @@ const rotateRefreshToken = async (
         SET
             refresh_token_hash = $1,
             expires_at = $2,
-            ip_address = $3
+            ip_address = $3,
+            device_fingerprint = COALESCE(device_fingerprint, $6)
         WHERE session_id = $4
           AND refresh_token_hash = $5
           AND revoked = FALSE
@@ -175,6 +177,7 @@ const rotateRefreshToken = async (
             user_id,
             refresh_token_hash,
             ip_address,
+            device_fingerprint,
             expires_at,
             revoked
         `,
@@ -183,7 +186,8 @@ const rotateRefreshToken = async (
             expiresAt,
             ipAddress,
             sessionId,
-            oldRefreshTokenHash
+            oldRefreshTokenHash,
+            deviceFingerprint
         ]
     );
 

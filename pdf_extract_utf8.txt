@@ -1,0 +1,7406 @@
+
+
+======== TOR ========
+Pages: 15
+--- Page 1 ---
+Project TOR — Clause-Wise Requirements 
+1. Executive Summary 
+1.1 Project Nature 
+The project involves the turnkey deployment of a secure and transparent digital credential 
+ecosystem within Pakistan's technical education sector. 
+The system is intended to establish infrastructure for issuing 300 verifiably secure National 
+Skills Passports (NSPs). 
+1.2 Geographic Deployment 
+The solution is to be deployed across 5 strategic testing points in []. 
+1.3 Delivery Model 
+The project is envisaged as a fully outsourced corporate technology engagement, covering: 
+ System development  
+ Infrastructure deployment  
+ Security implementation  
+ Quality assurance  
+ Technical support  
+ Service Level Agreements (SLAs)  
+ Post-launch warranty  
+ Long-term operational support  
+ Commercial design revisions  
+ Ongoing maintenance  
+1.4 Implementation Period 
+Development and live deployment: 3 months. 
+1.5 Operational Period 
+Continuous system availability: 24 months. 
+1.6 Target Output 
+The project must deliver: 
+--- Page 2 ---
+300 live, production-ready blockchain-based National Skills Passports that remain 
+permanently verifiable. 
+1.7 Commercial Model 
+The TOR envisages an all-inclusive turnkey enterprise contract, including infrastructure-
+related overheads. 
+ 
+2. Strategic Context & Rationale 
+2.1 Existing Bottleneck 
+Existing skills passport/record-keeping mechanisms have digitized basic records, but validation 
+and verification processes remain manual and relatively slow. 
+The TOR identifies slow verification cycles as a potential factor in Pakistani migrant workers 
+losing employment opportunities during international visa processing. 
+2.2 Immutable Trust Layer 
+The proposed system introduces a blockchain-based institutional trust layer. 
+Once an accredited testing centre records an assessment grade, the assessment is intended to be 
+immutably anchored. 
+The underlying objective is to make subsequent falsification of assessment records 
+mathematically infeasible. 
+2.3 Enterprise Procurement Rationale 
+The TOR specifically distinguishes the proposed corporate technology engagement from reliance 
+on: 
+ Freelance developers  
+ Open-source code without institutional ownership  
+ Informal maintenance arrangements  
+The corporate model is intended to provide: 
+ Institutional accountability  
+ Professional system integration  
+ Data protection  
+ Compliance  
+--- Page 3 ---
+ Maintenance capability  
+ Security assurance  
+ Long-term operational support  
+ 
+3. Technical Architecture & Enterprise Security Protocol 
+3.1 Decentralized Protocol 
+The system is to utilize a Layer-2 sidechain protocol, such as Polygon. 
+The stated purpose is to: 
+ Reduce transaction costs  
+ Maintain decentralized verification  
+ Provide a publicly verifiable credential infrastructure  
+3.2 Regulatory / Credential Architecture 
+The system is to be built around the: 
+World Wide Web Consortium (W3C) Verifiable Credentials standard. 
+The objective is to facilitate: 
+ Cross-border interoperability  
+ Integration with global migration databases  
+ Compatibility with international labour markets  
+ Standardized digital credential verification  
+ 
+3.3 Core Portal Components 
+A. Enterprise Issuer Portal 
+A secure web-based portal with: 
+ Multi-Factor Authentication (MFA)  
+ Role-Based Access Control (RBAC)  
+ Trade-tester access  
+ Candidate assessment score entry  
+--- Page 4 ---
+B. Worker Wallet & Dynamic PDF 
+A mobile-responsive application/interface providing: 
+ Digital worker credential access  
+ Clean mobile layout  
+ Dynamic PDF credential  
+ Smartphone-scannable QR patterns  
+C. Verifier DApp 
+A public lightweight verification application enabling external employers to: 
+ Search/verify a passport  
+ Confirm credential validity  
+ Verify without registering on the system  
+ 
+3.4 Specific Technical Security Measures 
+The technology solution is required to incorporate multiple security layers. 
+A. Cryptographic Ledger Security & Decentralized Identity 
+A.1 Asymmetric Key Cryptography 
+The system must use public-key cryptography, including: 
+ ECDSA  
+ Ed25519  
+Each authorized testing point is to possess a secure private key for signing credentials. 
+Corresponding public keys are registered on the ledger as Decentralized Identifiers (DIDs). 
+A.2 Hashing & Blockchain Anchoring 
+Raw personal/credential data is not to be written directly to the blockchain. 
+Instead: 
+1. Skill passport metadata is processed.  
+2. A unique SHA-256 cryptographic hash is generated.  
+3. Only the hash is anchored to the Polygon network.  
+--- Page 5 ---
+This is intended to prevent reverse-engineering of sensitive information through inspection of the 
+public ledger. 
+ 
+3.5 Data Privacy & PII Isolation 
+B.1 Off-Chain Personal Data Storage 
+Personally Identifiable Information (PII), including: 
+ Names  
+ Photographs  
+ NADRA CNIC numbers  
+must remain separate from the blockchain ledger. 
+The PII is to be maintained in an: 
+ Isolated  
+ Encrypted  
+ Off-chain relational database  
+ Hosted within an appropriate cloud environment  
+B.2 Blind Salt Mapping 
+A cryptographic salt is to be combined with the worker's CNIC information before generating 
+the final verification hash. 
+The purpose is to establish a secure relationship between: 
+Blockchain credential ↔ worker identity 
+without exposing the national identity number on the public ledger. 
+ 
+3.6 Advanced Network & Cloud Infrastructure Security 
+C.1 Encryption 
+Data exchanged between testing locations and the cloud infrastructure must use: 
+TLS 1.3 
+Data stored within cloud databases must use: 
+AES-256 encryption 
+--- Page 6 ---
+C.2 Secure API Architecture 
+Backend communication must occur through secure: 
+ REST APIs  
+ OAuth 2.0 tokenization  
+The system must also incorporate API rate limiting to mitigate: 
+ DDoS attacks  
+ Brute-force verification attempts  
+ Automated verification abuse  
+The TOR provides an example threshold of approximately: 
+60 requests per minute per IP address. 
+C.3 Virtual Private Cloud 
+Application and database layers must operate inside an isolated: 
+AWS Virtual Private Cloud (VPC) 
+with: 
+ Network Access Control Lists (NACLs)  
+ Restricted network access  
+ Enterprise Web Application Firewall (WAF)  
+ 
+3.7 Endpoint Security & RBAC 
+D.1 Mandatory MFA 
+Access to the issuer portal at all five testing points must require MFA in addition to passwords. 
+Permitted mechanisms identified include: 
+ Google Authenticator  
+ SMS OTP  
+D.2 Least-Privilege Role Structure 
+The TOR establishes three principal roles. 
+Role 1 — Trade Tester 
+--- Page 7 ---
+Responsibilities: 
+ Read/write candidate assessment records locally  
+Restriction: 
+ No authority to mint blockchain credentials  
+Role 2 — Center Superintendent 
+Responsibilities: 
+ Verification  
+ Digital approval  
+ Localized signature-key activation  
+Role 3 — Super Administrator / Provincial Authority 
+Responsibilities: 
+ System monitoring  
+ Credential revocation management  
+Restriction: 
+ No manual alteration of historical blockchain transaction hashes  
+D.3 Endpoint Hardening 
+Five laptops are to be securely configured. 
+Required controls include: 
+ Blocking external USB storage  
+ Malware-injection prevention  
+ Centrally managed Endpoint Detection & Response (EDR)  
+ Pre-installed endpoint security  
+ 
+4. Comprehensive Financial Framework — Two-Year Lifecycle 
+The TOR structures the commercial requirement around multiple phases. 
+Phase 1 — Engineering & Architecture 
+Required deliverables include: 
+--- Page 8 ---
+ Full-stack architecture  
+ Smart-contract programming  
+ Secure API development  
+ API-layer deployment  
+ UI/UX frontend design  
+ Initial mock-ups  
+ Unlimited UI/UX revisions  
+Phase 2 — Security & Infrastructure 
+Required scope: 
+ AWS cloud deployment  
+ Database backup protocols  
+ Multi-node failover arrangements  
+ Blockchain infrastructure  
+ Pre-funded Polygon gas-fee wallet for all 300 issuances  
+Phase 3 — Hardware & Site Setup 
+Required: 
+ Procurement and provisioning of 5 commercial laptops  
+ Dell/HP or equivalent commercial-grade devices  
+ Specialized endpoint security  
+ 5 dedicated enterprise 4G data connections  
+Phase 4 — Operations & Training 
+Required: 
+ Agency-led training workshops  
+ Training at the relevant operational location  
+ Training of testing-point personnel  
+ User manuals  
+ On-site support during live credential issuance  
+--- Page 9 ---
+Phase 5 — Corporate SLA & Warranty 
+A 6-month extended code warranty is required covering: 
+ Critical bug fixes  
+ Security patch upgrades  
+ Server optimization  
+ Dedicated technical support  
+Contingency Layer 
+The financial structure includes a contingency buffer to absorb: 
+ PKR/USD currency fluctuations  
+ Local inflation  
+ Cost increases during the three-month rollout  
+Phase 6 — Two-Year Running Cost 
+The project includes: 
+ AWS cloud hosting  
+ Continuous high-speed 4G data connectivity  
+ Five testing points  
+ Operating period covering months 4–24  
+Phase 7 — Long-Term Support SLA 
+After the initial six-month warranty: 
+18 months of paid maintenance/SLA support is envisaged. 
+This results in the overall 24-month operational horizon. 
+Phase 8 — Hidden Hard/Soft Costs 
+The TOR anticipates provision for: 
+ Hardware wear and tear  
+ Custom domain renewals  
+ SSL certificates  
+ Staff re-training  
+--- Page 10 ---
+ Compliance reviews  
+Total Two-Year Investment 
+The TOR describes the commercial arrangement as a: 
+Turnkey Enterprise Project Footprint 
+with costs managed through a single corporate technology engagement together with direct 
+infrastructure costs. 
+The TOR uses a baseline exchange-rate assumption of approximately: 
+USD 1 = PKR 278 
+for budgeting purposes. 
+ 
+5. Technical Implementation & Operational Roadmap 
+The project is divided into three implementation months followed by a 21-month operational 
+period. 
+Month 1 — Design & Core Engineering 
+Activities include: 
+ UI/UX interface design  
+ Software architecture  
+ Smart-contract development  
+ AWS hosting environment  
+ Security architecture  
+ Beta security testing  
+ Hardware procurement  
+Weeks 1–2 
+Required activities: 
+ Project kick-off  
+ Finalization of Software Requirements Specification (SRS)  
+ Initial UI/UX wireframes  
+ Review and approval of interface design  
+--- Page 11 ---
+Weeks 3–4 
+Required activities: 
+ Smart-contract development  
+ Secure blockchain framework implementation  
+ AWS cloud environment setup  
+ Procurement of testing laptops and associated hardware  
+ 
+5.1 Month 2 — Operational Onboarding & Site Readiness 
+Week 5 
+Coordination and formal onboarding of the five designated testing sites. 
+The TOR suggests the following locations: 
+1. P 
+2. M  
+3. S  
+4. K  
+5. A  
+Week 6 
+A comprehensive two-day training summit is to be conducted for testing-point personnel. 
+Weeks 7–8 
+Activities include: 
+ On-site hardware deployment  
+ Enterprise 4G connectivity deployment  
+ Full system stress testing  
+ End-to-end beta issuance simulations  
+ 
+5.2 Month 3 — Live Pilot Execution & Warranty Activation 
+Weeks 9–10 
+--- Page 12 ---
+Required activities: 
+ Enrolment of 60 candidates per hub  
+ Total candidates: 300  
+ Completion of standard practical skills assessments  
+Weeks 11–12 
+The project enters live issuance. 
+Activities: 
+ Live minting event  
+ Digital issuance of 300 production blockchain NSPs  
+ Live verification demonstrations  
+ Demonstration to international employers  
+ Project closeout  
+ Activation of the six-month extended warranty  
+ 
+5.3 Months 4–24 — System Maintenance & Long-Term Infrastructure 
+The system is required to remain operational during the remaining project lifecycle. 
+Requirements include: 
+ Continuous cloud hosting  
+ Continuous operation of web dashboard  
+ Continuous operation of verification portal  
+ Monthly data provisioning for testing-point devices  
+ Remote tracking support  
+ Support for secondary candidate evaluation  
+Following the six-month warranty, the system transitions to: 
+18-month agency SLA/maintenance support. 
+The support is intended to address: 
+ Operating-system changes  
+--- Page 13 ---
+ Server optimization  
+ Security/threat updates  
+ Unforeseen technical issues  
+ 
+6. Long-Term Hard, Soft & Licensing Cost Requirements 
+6.1 Software Licensing 
+The proposed architecture is based on: 
+ W3C credential standards  
+ Blockcerts  
+ Public Layer-2 ledger networks such as Polygon  
+ Open-source standards  
+The TOR states that this approach is intended to create zero vendor lock-in. 
+It further states that no recurring commercial software license is required for system operation. 
+External Verification 
+Verification of passports by external employers is intended to remain: 
+Free of charge permanently. 
+ 
+6.2 Long-Term Hardware Costs 
+Hardware Wear & Surge Management 
+The TOR recognizes that laptops operating in remote areas may experience: 
+ Unstable electricity  
+ Battery degradation  
+ Power-supply degradation  
+Budget provisions are therefore expected for: 
+ Replacement batteries  
+ Power packs  
+ Related hardware maintenance  
+--- Page 14 ---
+Domain & SSL Lifecycle 
+The project must provide for: 
+ Continued ownership/renewal of the relevant custom domain  
+ National domains such as .pk or .gov.pk, where applicable  
+ High-grade SSL certificates  
+ Continuation into Year 2  
+ 
+6.3 Long-Term HR & Compliance Costs 
+Staff Turnover & Re-training 
+Because regional personnel may rotate, the solution must account for: 
+ Operator replacement  
+ Re-training  
+ Pre-recorded video training modules  
+ At least one remote refresher training clinic during Year 2  
+Data Privacy & Compliance Auditing 
+Over the 24-month operating period, the project must account for changes in applicable digital 
+laws and regulatory requirements. 
+The TOR therefore includes: 
+ Technical compliance audit  
+ Review of the identity-mapping layer  
+ Data-protection compliance assessment  
+ Alignment with the latest applicable Pakistani digital data-protection framework  
+ 
+7. Institutional Risks & Mitigation Matrix 
+7.1 Risk — Connectivity Drops 
+Risk 
+Remote areas may experience: 
+--- Page 15 ---
+ Power outages  
+ Internet outages  
+ Unstable connectivity  
+This could interrupt blockchain synchronization. 
+Proposed Mitigation 
+The architecture must incorporate a: 
+Secure browser-side queue caching mechanism. 
+Data is to be: 
+1. Encrypted  
+2. Cached securely while offline  
+3. Automatically synchronized once stable connectivity returns  
+ 
+7.2 Risk — Data Sovereignty & Privacy 
+Risk 
+Public blockchain networks can create regulatory concerns if national identification information 
+is stored directly on the ledger. 
+Proposed Mitigation 
+The system must ensure: 
+ Zero PII is written to the blockchain  
+ Only an encrypted/anonymous cryptographic hash is stored  
+ Personal information remains in secure isolated databases  
+ Identity validation occurs through appropriate NADRA CNIC references  
+ The blockchain credential can be verified without exposing the underlying national 
+identity data  
+ 
+ 
+
+
+======== SDD ========
+Pages: 64
+--- Page 1 ---
+National Skills Passport (NSP) System — Software Design Description
+SOFTWARE DESIGN DESCRIPTION
+National Skills Passport (NSP) System
+A Blockchain-Anchored Verifiable Digital Credential Platform for Technical Skills Certification
+Attribute Value
+Document Title Software Design Description (SDD) — National Skills Passport (NSP) System
+Based On System Requirements Specification (SRS) v2.1 — Smart-Contract Minting 
+Finalized
+Architecture Style Modular Monolith (single deployable application, 4 internal domain 
+modules)
+Target Deployment AWS Cloud (VPC-isolated) | Polygon Layer-2 Blockchain | 5 KP Testing Hubs
+Project Scope 300 Verifiable Credentials across 5 testing points, 60 candidates per hub
+Client Applications Issuer Portal (React Web) · Worker Mobile Wallet (React Native) · Verifier 
+DApp (React Web)
+Document Status Design finalized for internal build — smart-contract minting design 
+confirmed
+Prepared for the Technical Education & Skills Verification Initiative
+Derived from SRS v2.1 (Smart-Contract Minting Finalized) and the approved system design diagram set
+Page 1 of 64
+--- Page 2 ---
+National Skills Passport (NSP) System — Software Design Description
+Table of Contents
+This document is best viewed in Word with fields updated (References → Update Table) to populate live  
+page numbers. The section list below mirrors the structure of this SDD.
+1. Introduction
+2. System Overview
+3. Design Considerations
+4. System Architecture
+5. Data Design
+6. Detailed (Component-Level) Design
+7. Behavioral Design — State Dynamics
+8. Human–Computer Interface Design (including UI wireframes)
+9. Use Case Views
+10. Non-Functional Design
+11. Requirements Traceability Matrix
+12. Design-Relevant Risk Considerations
+13. Glossary of Terms
+Page 2 of 64
+--- Page 3 ---
+National Skills Passport (NSP) System — Software Design Description
+1. Introduction
+1.1 Purpose
+This Software Design Description (SDD) translates the requirements defined in the National Skills Passport 
+(NSP) System Software Requirements Specification (SRS v2.1) into a concrete, implementation-ready  
+design. It describes the system's architecture, data model, component-level design, behavioral logic, and 
+human–computer interfaces, using the approved diagram set (use case diagrams, sequence diagrams,  
+state diagrams, sitemaps, and user-flow diagrams) as the authoritative source for design decisions. This  
+document is intended to guide development, QA, and security review, and to serve as the single design  
+reference alongside the SRS.
+This SDD follows a structure consistent with the IEEE 1016 Software Design Description standard, adapted 
+to the modular-monolith architecture and blockchain-anchored credentialing domain of the NSP System.
+1.2 Scope
+The design covers the complete NSP System: three client applications (Issuer Portal, Worker Mobile  
+Wallet, Verifier DApp), four backend domain modules within a single modular-monolith application (Auth 
+& Identity, Candidate Assessment, Blockchain Minting & Ledger, Public Verification), the smart-contract  
+minting layer on the Polygon Layer-2 network, and the supporting AWS cloud infrastructure. The design  
+addresses the full credential lifecycle: candidate enrolment, assessment scoring, two-tier approval, signed 
+minting, wallet activation, and public verification, including offline-first data capture and administrative  
+revocation.
+1.3 Definitions, Acronyms & Abbreviations
+Table 1. Key terms used throughout this design
+Term Definition
+NSP National Skills Passport — the verifiable digital credential issued to a candidate
+VC Verifiable Credential — W3C standard for cryptographically verifiable digital claims
+DID Decentralized Identifier — unique identifier registered to a public key, used to identify issuing 
+hubs on the ledger
+PII Personally Identifiable Information (name, father's name, DOB, CNIC, photograph)
+L2 / Polygon Layer-2 blockchain network used for low-cost, fast transaction anchoring
+Proxy Contract Upgradeable smart-contract pattern where a fixed address delegates logic to a replaceable 
+implementation, controlled by a separate admin authority
+Multisig Multi-signature authorization — an action requires approval from more than one designated 
+party
+WAF Web Application Firewall — perimeter security filtering malicious HTTP traffic
+VPC Virtual Private Cloud — isolated AWS network segment
+Page 3 of 64
+--- Page 4 ---
+National Skills Passport (NSP) System — Software Design Description
+Term Definition
+MFA Multi-Factor Authentication (TOTP authenticator app or SMS OTP)
+RBAC Role-Based Access Control
+CNIC Computerized National Identity Card (Pakistan) — national ID number
+NADRA National Database & Registration Authority (Pakistan) — issuer of CNIC
+1.4 References
+• System Requirements Specification (SRS) v2.1 — National Skills Passport (NSP) System (source 
+document for this design)
+• Project Terms of Reference (TOR) — Clause-Wise Requirements
+• Smart-Contract Minting Design — agreed with the project's blockchain advisor
+• Approved system diagram set: use case diagrams, sequence diagrams, state diagrams, ERD, 
+deployment diagram, sitemaps, and user-flow diagrams
+• W3C Verifiable Credentials Data Model; Blockcerts open credential standard
+• IEEE 1016-2009 — Standard for Information Technology, Software Design Descriptions (structural 
+reference for this document)
+1.5 Document Overview
+Section 2 restates the system's overall purpose, actors, and design goals. Section 3 records the  
+assumptions and constraints that shaped the design. Section 4 presents the architectural design  
+(component and deployment views). Section 5 presents the data design. Section 6 is the detailed, module-
+by-module component design, illustrated with sequence diagrams. Section 7 covers behavioral design via 
+state diagrams. Section 8 covers the human–computer interface design for all three client applications.  
+Section 9 presents the use case views underlying the design. Section 10 restates the non-functional design 
+constraints. Section 11 provides a requirements traceability matrix. Section 12 notes design-relevant risks, 
+and Section 13 is a glossary.
+Page 4 of 64
+--- Page 5 ---
+National Skills Passport (NSP) System — Software Design Description
+2. System Overview
+2.1 System Context
+The NSP System is a new, self-contained, turnkey platform that replaces slow, manual, paper-based skills-
+verification workflows with an instantly and permanently verifiable digital credential. A blockchain-based 
+institutional trust layer underlies the platform: once a testing centre records and approves an assessment 
+grade, the resulting credential is minted through a smart contract and cryptographically anchored, so that 
+any subsequent tampering with the off-chain record is mathematically detectable.
+The credential lifecycle proceeds through five stages, which anchor the entire design of this document:
+• Stage 1 — Physical Skills Assessment: the candidate is tested in person at a testing hub.
+• Stage 2 — Tester + Superintendent Approval: the score is entered and approved on the Issuer 
+Portal through a two-role sign-off.
+• Stage 3 — Signed Minting: the approved record is signed client-side by the Center Superintendent 
+using the hub's private key, then submitted to the smart contract, which verifies the signature and 
+mints the credential, anchoring only its SHA-256 hash.
+• Stage 4 — Worker's Mobile Wallet: the wallet renders a scannable QR code and the digital 
+credential for the candidate.
+• Stage 5 — Employer Verification: the employer scans the QR; the system matches the off-chain 
+data against the on-chain hash and returns a verification result.
+2.2 Design Goals & Objectives
+• Zero-PII blockchain policy: personal data is never written on-chain — only SHA-256 digests are 
+anchored.
+• Open standards throughout (W3C VC, Blockcerts, public Layer-2 ledgers) to avoid vendor lock-in 
+and recurring licensing costs.
+• Offline-first field data capture, tolerant of intermittent connectivity at remote testing hubs.
+• Strong identity assurance: MFA on every login, NADRA CNIC verification at enrolment, device-
+fingerprint-bound sessions.
+• Auditable, tamper-evident workflow at every stage, from authentication through minting to 
+revocation.
+• A single deployable modular-monolith application that keeps operational simplicity while 
+preserving clean domain boundaries for future decomposition.
+2.3 User Classes & Actors
+Five actor classes drive the system's use case model, detailed with their full use case views in Section 9:
+Table 2. User classes and primary responsibilities
+Actor Responsibilities Access Restrictions
+Trade Tester Enrols candidates; enters assessment scores Cannot approve, mint, or 
+Page 5 of 64
+--- Page 6 ---
+National Skills Passport (NSP) System — Software Design Description
+Actor Responsibilities Access Restrictions
+and media at the assigned hub; works offline 
+when needed revoke; scoped to own hub
+Center 
+Superintendent
+Reviews and approves/rejects submitted 
+assessments; locally signs approved records 
+for minting
+Cannot alter minted records; 
+scoped to own hub
+Super Administrator System-wide monitoring, user management, 
+credential revocation, hub configuration
+Cannot alter historical 
+blockchain hashes or 
+unilaterally upgrade the smart 
+contract (multisig required)
+Worker / Candidate Views and presents own NSP via the mobile 
+wallet (QR / PDF)
+Read-only access to own 
+credential; no portal login
+External Verifier 
+(Employer)
+Looks up and verifies a credential's 
+authenticity
+No authentication required; 
+read-only, rate-limited public 
+access
+2.4 Operating Environment
+• Cloud: AWS (VPC-isolated), region selected for latency to KP / Pakistan.
+• Blockchain: Polygon Layer-2 network (Amoy testnet for pilot/staging, mainnet for production 
+issuance).
+• Server runtime: Node.js + Express, a single application process organized into four internal 
+modules.
+• Client platforms: modern evergreen browsers (Issuer Portal, Verifier DApp) and Android/iOS 
+smartphones (Worker Mobile Wallet).
+• Field hardware: five commercial-grade laptops with centrally managed EDR, one per testing hub, 
+each on a dedicated enterprise 4G connection.
+Page 6 of 64
+--- Page 7 ---
+National Skills Passport (NSP) System — Software Design Description
+3. Design Considerations
+3.1 Assumptions & Dependencies
+• Reliable, if intermittent, 4G connectivity is available at or near each of the 5 hubs.
+• A gas-fee wallet is pre-funded in MATIC/POL to cover all 300 planned mint transactions.
+• Testing-hub locations and personnel are confirmed and onboarded per the agreed roadmap 
+(Weeks 5–6).
+• NADRA CNIC values are supplied by candidates at enrolment and never transmitted in raw form 
+beyond the Candidate Assessment module boundary.
+• Multisig approvers for smart-contract admin authority are designated and available before mainnet 
+deployment.
+• A national digital-law / data-protection compliance audit is commissioned in Year 2 of operations.
+3.2 Design Constraints
+• Zero-PII blockchain policy — no personal data may ever be written on-chain, only SHA-256 digests.
+• Open, license-free standards only (W3C VC, Blockcerts, public L2 ledgers) to avoid vendor lock-in 
+and recurring software licensing costs.
+• API rate limiting fixed at 60 requests/minute/IP across all public and authenticated endpoints.
+• All 5 field laptops must have USB storage ports disabled and run managed EDR.
+• Verifier DApp must remain free-of-charge permanently for external employers.
+• Smart-contract upgrade authority must require multisig approval — no single administrator may 
+act alone.
+3.3 Architectural Style Rationale
+The platform follows a modular monolith architecture: a single Node.js/Express application internally  
+organized into four domain modules — Auth & Identity, Candidate Assessment, Blockchain Minting &  
+Ledger, and Public Verification — each with a clearly defined internal interface and its own PostgreSQL  
+schema within one shared database. Modules communicate via in-process calls and an internal event bus 
+for asynchronous flows (for example, approval-triggered minting); no module reaches directly into  
+another module's schema.
+This style was chosen over a microservices decomposition because the pilot scope (300 credentials across 
+5 hubs) does not justify the operational overhead of independently deployed services, while the schema-
+per-module boundary preserves a clean migration path to microservices if the platform scales beyond the 
+pilot. All external traffic enters through a single AWS API Gateway / WAF layer before being routed to the 
+application.
+Page 7 of 64
+--- Page 8 ---
+National Skills Passport (NSP) System — Software Design Description
+4. System Architecture
+4.1 High-Level Component Architecture
+The architecture is organized into five layers, summarized in Table 3 and elaborated in the deployment  
+view (Figure 2).
+Table 3. High-level component architecture
+Layer Components
+Client Applications Issuer Portal (React Web, MFA login) · Worker Mobile Wallet (React Native, QR + PDF) · 
+Verifier DApp (React Web, public, no login)
+Edge / Security Layer AWS WAF · Route 53 DNS · rate limiting (60 req/min/IP) · OAuth 2.0 / TLS 1.3 
+termination · API Gateway routing
+Application Layer (Modular 
+Monolith)
+Single Node.js/Express application, internally modularized: Auth & Identity · Candidate 
+Assessment · Blockchain Minting & Ledger · Public Verification
+Off-Chain Data Layer Single PostgreSQL database (auth / candidate / ledger schemas) · Redis Cache · AWS S3 
+(photos / PDFs / assessment media)
+On-Chain / Ledger Layer Polygon Layer-2 network — a proxy smart contract verifies each hub's signature and 
+mints the credential, anchoring only its SHA-256 hash digest; interaction via ethers.js
+4.2 Deployment Architecture
+The system deploys within a single AWS account and VPC, split into a public subnet (NAT Gateway, WAF, 
+Application Load Balancer) and a private subnet (backend compute, RDS PostgreSQL, ElastiCache Redis,  
+Secrets Manager). The backend runs as containerized ECS/Fargate tasks behind the load balancer, with  
+outbound-only access to external services (NADRA verification API, the Polygon RPC provider, and the  
+mobile app stores). Frontend builds for the Issuer Portal and Verifier DApp are served from S3 via  
+CloudFront; the Worker Mobile Wallet is distributed as a native app. GitHub Actions drives CI/CD,  
+deploying the backend and each frontend independently within the same pipeline family. CloudWatch,  
+fed by VPC flow logs, provides centralized monitoring.
+Page 8 of 64
+--- Page 9 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 1. AWS deployment architecture — one VPC, two subnets, two independently deployed frontends, all 
+outbound-only external calls.
+4.3 End-to-End Backend Flow
+Figure 3 traces a single credential through the full backend pipeline: candidate creation, salted-hash CNIC 
+handling, DRAFT persistence, superintendent approval, W3C VC construction and hashing, on-chain  
+minting, and finally public verification with hash reconciliation. This flow is the backbone against which  
+every module design in Section 6 is elaborated in detail.
+Page 9 of 64
+--- Page 10 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 2. End-to-end backend sequence: enrolment → draft → approval → mint → verification.
+4.4 Prototype-to-Production Architecture Mapping
+The prototype architecture already consolidates the three front-ends behind a single shared backend API. 
+Production carries the same modular-monolith shape forward — hardened, schema-separated, and  
+horizontally scaled — rather than being decomposed into independent microservices.
+Page 10 of 64
+--- Page 11 ---
+National Skills Passport (NSP) System — Software Design Description
+Table 4. Prototype-to-production component mapping
+Prototype Component Maps to Production Component
+Backend API (Node.js + Express, plain JavaScript)
+Hardened modular monolith (Node.js + Express), same 
+single-application shape, organized into auth / 
+candidate / ledger / verification modules behind API 
+Gateway
+Relational Database (PostgreSQL, off-chain, stores PII and 
+scores)
+One Multi-AZ AWS RDS PostgreSQL instance, with a 
+dedicated schema per module (auth, candidate, ledger)
+Blockchain Layer (smart contract on Polygon Amoy 
+testnet)
+Same proxy contract and multisig-controlled admin 
+configuration, promoted to Polygon mainnet for live 
+issuance
+AWS EC2 / RDS / S3
+Containerized compute running horizontally-scaled 
+instances of the single application, Multi-AZ RDS 
+PostgreSQL, S3 for media with pre-signed URLs
+Page 11 of 64
+--- Page 12 ---
+National Skills Passport (NSP) System — Software Design Description
+5. Data Design
+5.1 Database Architecture
+The platform uses a single shared PostgreSQL database, with each backend module owning its own  
+schema — a schema-per-module pattern within one physical database. Cross-module references (for  
+example, candidate_id inside the ledger schema) are resolved through each module's internal interface,  
+though the database may still enforce cross-schema foreign keys for referential integrity since all schemas 
+live in the same physical database.
+Table 5. Schema ownership
+Schema Owning Module Core Entities
+auth Auth & Identity users, sessions
+candidate Candidate Assessment candidates, assessment_records
+ledger Blockchain Minting & Ledger minting_queue, credentials
+AWS S3 (external) Candidate Assessment / Ledger candidate photographs, generated credential PDFs
+The record lifecycle for assessment_records.status is DRAFT → SUBMITTED → APPROVED / REJECTED →  
+MINTED. A REJECTED record returns to DRAFT for correction. An APPROVED record automatically triggers 
+an entry in minting_queue (ledger schema), which transitions QUEUED → BROADCASTED → CONFIRMED, 
+or FAILED with bounded retry. This lifecycle is elaborated as a formal state machine in Section 7.
+5.2 Entity-Relationship Diagram
+Figure 4 shows the consolidated data model across all three schemas (auth, candidate, ledger), plus the  
+hubs reference table used to bind staff, candidates, and credentials to one of the five KP testing points.
+Figure 3. Consolidated entity-relationship diagram — auth, candidate, and ledger schemas.
+Page 12 of 64
+--- Page 13 ---
+National Skills Passport (NSP) System — Software Design Description
+5.3 Data Dictionary
+5.3.1 auth schema
+Table 6. auth.users
+Field Type / Constraint Notes
+user_id UUID, PK, default gen_random_uuid() Unique account identifier
+email VARCHAR(255), UNIQUE, NOT NULL Login identifier
+password_hash VARCHAR(255), NOT NULL Salted/hashed credential, never stored in 
+plaintext
+role
+ENUM(TRADE_TESTER, 
+CENTER_SUPERINTENDENT, 
+SUPER_ADMIN)
+Drives RBAC decisions
+hub_location_id INT, CHECK BETWEEN 1 AND 5 Binds staff to one of the 5 KP hubs
+mfa_secret VARCHAR(255), NOT NULL TOTP seed, encrypted at rest
+is_mfa_active BOOLEAN, DEFAULT TRUE MFA cannot be disabled by end users
+created_at TIMESTAMPTZ, DEFAULT now() Audit trail
+Table 7. auth.sessions
+Field Type / Constraint Notes
+session_id UUID, PK Unique session identifier
+user_id UUID, FK → users, ON DELETE CASCADE Session owner
+refresh_token_has
+h VARCHAR(255), NOT NULL Hashed refresh token (never stored raw)
+ip_address VARCHAR(45), NOT NULL Source IP for anomaly detection
+device_fingerprint VARCHAR(255), NOT NULL Bound to authorized hub laptop
+expires_at TIMESTAMPTZ, NOT NULL Session expiry
+revoked BOOLEAN, DEFAULT FALSE Manual/administrative revocation flag
+5.3.2 candidate schema
+Table 8. candidate.candidates
+Field Type / Constraint Notes
+candidate_id UUID, PK Unique candidate identifier
+full_name / 
+father_name VARCHAR(255), NOT NULL PII — off-chain only
+dob DATE, NOT NULL Date of birth
+Page 13 of 64
+--- Page 14 ---
+National Skills Passport (NSP) System — Software Design Description
+Field Type / Constraint Notes
+cnic_salted_hash VARCHAR(64), UNIQUE, NOT NULL Salted hash of CNIC — public-facing, non-
+reversible reference
+cnic_dedup_hash VARCHAR(64), UNIQUE, NOT NULL Fixed-key HMAC of CNIC, used only for 
+duplicate-enrolment detection
+cnic_blind_salt VARCHAR(255), NOT NULL Per-candidate cryptographic salt, 
+encrypted at rest
+photo_s3_uri VARCHAR(512), NOT NULL Pointer to encrypted S3 object
+trade_category VARCHAR(100), NOT NULL e.g., Electrician, Welder, Plumber
+testing_hub_id INT, CHECK BETWEEN 1 AND 5 Enrolling hub
+Table 9. candidate.assessment_records
+Field Type / Constraint Notes
+assessment_id UUID, PK Unique assessment record
+candidate_id UUID, FK → candidates, ON DELETE 
+RESTRICT Owning candidate
+score NUMERIC(5,2), NOT NULL Raw assessment score
+grade VARCHAR(10), NOT NULL Derived pass/fail or letter grade
+tester_user_id UUID, NOT NULL Trade Tester who entered the score
+superintendent_u
+ser_id UUID, NULLABLE Approving Center Superintendent
+status ENUM(DRAFT, SUBMITTED, APPROVED, 
+REJECTED, MINTED) Workflow state machine
+rejection_reason TEXT, NULLABLE Populated when status = REJECTED
+submitted_at / 
+approved_at TIMESTAMPTZ, NULLABLE Workflow timestamps
+5.3.3 ledger schema
+Table 10. ledger.minting_queue
+Field Type / Constraint Notes
+queue_id UUID, PK Unique queue entry
+assessment_id UUID, UNIQUE, NOT NULL 1:1 link to the approved assessment 
+record
+metadata_payload
+_hash VARCHAR(64), NOT NULL Pre-broadcast hash of the credential 
+payload
+status ENUM(QUEUED, BROADCASTED, 
+CONFIRMED, FAILED) Transaction lifecycle state
+Page 14 of 64
+--- Page 15 ---
+National Skills Passport (NSP) System — Software Design Description
+Field Type / Constraint Notes
+retry_count INT, DEFAULT 0 Automatic retry tracking on failure
+Table 11. ledger.credentials
+Field Type / Constraint Notes
+credential_id UUID, PK Unique credential identifier
+candidate_id UUID, UNIQUE, NOT NULL 1:1 link to candidate
+w3c_vc_json JSONB, NOT NULL Full W3C Verifiable Credential document
+sha256_root_hash VARCHAR(64), UNIQUE, NOT NULL Digest anchored via the minting contract
+polygon_tx_hash VARCHAR(66), UNIQUE, NULLABLE On-chain mint transaction hash
+contract_address VARCHAR(42), NOT NULL Address of the proxy minting contract
+block_number BIGINT, NULLABLE Confirming block
+issuer_did VARCHAR(255), NOT NULL DID of the issuing hub
+is_revoked BOOLEAN, DEFAULT FALSE Revocation flag (does not delete history)
+revocation_reason TEXT, NULLABLE Populated when is_revoked = TRUE
+Page 15 of 64
+--- Page 16 ---
+National Skills Passport (NSP) System — Software Design Description
+6. Detailed (Component-Level) Design
+This section elaborates the design of each of the four backend modules and the three client applications, 
+tracing each design decision to the functional requirement(s) it satisfies (FR-xxx-nn, as defined in the SRS) 
+and to the corresponding sequence diagram from the approved diagram set.
+6.1 Auth & Identity Module (auth schema)
+Primary responsibility: user management, multi-factor authentication (MFA), role-based session token  
+issuance, and testing-hub device authorization.
+Design Responsibilities
+• FR-AUTH-01: Enforce dual-factor authentication (TOTP or SMS OTP) for every login, with no opt-
+out.
+• FR-AUTH-02: Issue RS256-signed OAuth 2.0 JWT access tokens (15-minute expiry) with a rotating 
+refresh token.
+• FR-AUTH-03: Restrict API access by role (Trade Tester, Center Superintendent, Super 
+Administrator), re-validated within each module.
+• FR-AUTH-04: Validate device fingerprints so connections originate only from authorized, EDR-
+secured hub laptops.
+• FR-AUTH-05: Allow a Super Administrator to instantly revoke any active session.
+• FR-AUTH-06: Lock an account after 5 consecutive failed login attempts.
+• FR-AUTH-07: Log every authentication event (success, failure, MFA challenge, session revocation) 
+with timestamp, IP, and device fingerprint.
+• FR-AUTH-08: Provide MFA recovery via ten single-use backup codes (stored as salted hashes) and 
+Super Administrator-assisted reset after out-of-band identity verification.
+Design Detail
+The login sequence (Figure 5) is a two-step challenge: password verification followed by MFA verification. 
+On the fifth consecutive failed password attempt the account is locked (FR-AUTH-06) and the failure is  
+logged. Once the password is valid, the portal presents the MFA challenge screen; on successful TOTP/SMS 
+verification, the module captures the device fingerprint and IP address (FR-AUTH-04), inserts a session row 
+with a hashed refresh token, and issues a 15-minute RS256 JWT access token plus a rotating refresh token 
+(FR-AUTH-02). Every branch of this flow — success, failure, lockout — writes an immutable audit-log entry 
+(FR-AUTH-07).
+Page 16 of 64
+--- Page 17 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 4. Login & MFA authentication sequence — Issuer Portal to Auth & Identity module.
+Page 17 of 64
+--- Page 18 ---
+National Skills Passport (NSP) System — Software Design Description
+6.2 Candidate Assessment Module (candidate schema)
+Primary responsibility: candidate profile intake, assessment record entry, PII anonymization via blind salt 
+hashing, and off-chain media handling.
+Design Responsibilities
+• FR-CAND-01: Support candidate enrolment for 60 candidates per hub across the 5 KP testing points 
+(300 total).
+• FR-CAND-02: Generate pre-signed AWS S3 (TLS 1.3) upload URLs so photographs transfer directly 
+to storage without transiting application memory.
+• FR-CAND-02A: Verify each candidate's CNIC against the NADRA verification service during 
+enrolment before any assessment can be recorded.
+• FR-CAND-03: Apply a unique, dynamic cryptographic salt to each candidate's CNIC before hashing, 
+isolating the raw CNIC from downstream services.
+• FR-CAND-04: Ingest encrypted, browser-cached assessment queues from the Issuer Portal 
+(IndexedDB) and auto-sync once connectivity returns.
+• FR-CAND-05: Restrict score submission to Trade Testers and record approval to Center 
+Superintendents, enforced via the status state machine.
+• FR-CAND-06: Prevent duplicate enrolment via the deterministic cnic_dedup_hash (fixed-key 
+HMAC), distinct from cnic_salted_hash.
+• FR-CAND-07: Allow a Center Superintendent to reject a submitted record with a mandatory 
+rejection_reason, returning it to DRAFT.
+• FR-CAND-08: Emit an APPROVED domain event that the ledger module subscribes to, via the 
+internal event bus, for automatic minting-queue enqueue.
+6.2.1 Candidate Enrolment
+Figure 6 details the enrolment sequence. The candidate photograph is uploaded directly to S3 via a pre-
+signed URL (steps 3–9), bypassing backend memory (FR-CAND-02). The raw CNIC is used only in-request, 
+one time, to call the NADRA verification service (FR-CAND-02A); enrolment is blocked with a 422 response 
+if no identity match is found. On a confirmed match, the module generates a per-candidate blind salt,  
+computes both the salted hash (public-facing reference) and the deterministic dedup hash (duplicate  
+detection, FR-CAND-06), checks for an existing row, and only then inserts the candidate.
+Page 18 of 64
+--- Page 19 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 5. Candidate enrolment sequence — photo upload, NADRA verification, blind-salt hashing, deduplication.
+6.2.2 Recording and Submitting an Assessment
+Figure 7 shows a Trade Tester recording a score (saved as DRAFT), reviewing it, and submitting it for  
+approval. The API Gateway enforces the FR-CAND-05 role check (Trade Tester only) before the Candidate 
+Assessment module inserts or updates the record.
+Figure 6. Recording and submitting an assessment record for approval.
+6.2.3 Rejecting an Assessment
+Figure 8 shows the reject path. A Center Superintendent must supply a non-empty rejection_reason (FR-
+CAND-07); the API returns 400 Bad Request if the reason is missing. On a valid rejection, the record status 
+is set to REJECTED and then system-auto-returned to DRAFT so the Trade Tester can correct and resubmit 
+it.
+Page 19 of 64
+--- Page 20 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 7. Rejecting a submitted assessment record.
+6.2.4 Offline Capture and Auto-Sync
+Figure 9 shows the offline-first design required by FR-CAND-04. While a hub is offline, the Issuer Portal  
+detects the disconnected state, encrypts each candidate/assessment record, and queues it in browser  
+IndexedDB. Once connectivity is restored, the portal reads all queued, unsynced records and replays them 
+against the Candidate Assessment module in order, marking each as synced and removing it from the local 
+queue only after a confirmed 200/201 response.
+Figure 8. Offline data capture and automatic synchronization on reconnect.
+Page 20 of 64
+--- Page 21 ---
+National Skills Passport (NSP) System — Software Design Description
+6.3 Blockchain Minting & Ledger Module (ledger schema)
+Primary responsibility: structuring W3C Verifiable Credentials, running SHA-256 hash operations,  
+submitting signed mint requests to the Polygon smart contract, and tracking revocation states.
+Design Responsibilities
+• FR-LEDG-01: Compile approved assessment records into W3C Verifiable Credential and Blockcerts 
+JSON formats.
+• FR-LEDG-02: Generate a single SHA-256 hash digest from the complete W3C credential payload for 
+blockchain anchoring.
+• FR-LEDG-03: Relay client-signed mint requests to the smart contract's mint function via ethers.js, 
+drawing gas fees from a single pre-funded gas wallet; the backend never has access to hub private 
+keys.
+• FR-LEDG-04: Store transaction receipts, block numbers, contract addresses, and transaction 
+hashes, keeping all raw PII off-chain.
+• FR-LEDG-05: Allow Super Administrators to set a credential's off-chain revocation status without 
+altering the anchored transaction, hash, or minting record.
+• FR-LEDG-06: Automatically retry failed mint transactions (bounded by retry_count) and surface 
+persistent failures to Super Administrators.
+• FR-LEDG-07: Register each hub's public key as a DID; the private key is generated once at hub setup 
+and held only in the Center Superintendent's browser (IndexedDB, passphrase-protected).
+• FR-LEDG-08: Sign each credential using asymmetric cryptography (ECDSA or Ed25519) bound to the 
+issuing hub's DID before minting.
+• FR-LEDG-09: Have the smart contract verify the submitting hub's signature against its registered 
+DID public key before minting, rejecting failed verifications.
+• FR-LEDG-10: Require multisig approval for any smart-contract upgrade — no single individual may 
+unilaterally alter contract logic.
+6.3.1 Review, Approve, Sign & Mint Credential
+Figure 10 is the most critical sequence in the system, spanning the Issuer Portal, browser IndexedDB, Auth 
+Module, Candidate Assessment Module, the internal event bus, the Blockchain Minting & Ledger Module, 
+PostgreSQL, and the Polygon smart contract. A Center Superintendent opens the approval queue, reviews 
+a record, and clicks Approve, which triggers a step-up MFA re-prompt (FR-ISS-07) before any irreversible 
+action. The hub's encrypted private key is then decrypted locally with a passphrase — the key is never  
+transmitted (FR-LEDG-07) — and used to sign the credential payload client-side (FR-LEDG-08). The signed 
+PATCH request moves the assessment record to APPROVED and publishes an APPROVED domain event  
+(FR-CAND-08) over the internal event bus.
+The Ledger module subscribes to this event, compiles the W3C VC / Blockcerts JSON (FR-LEDG-01),  
+computes its SHA-256 digest (FR-LEDG-02), inserts QUEUED rows into minting_queue and credentials, and 
+relays the signed mint request via ethers.js using the pre-funded gas wallet (FR-LEDG-03). The smart  
+contract verifies the hub's signature against its registered DID before minting (FR-LEDG-09); on success the 
+transaction hash and block number are recorded and both the credential and assessment record are  
+marked MINTED. On signature failure or a failed transaction, the queue entry is marked FAILED, retried  
+Page 21 of 64
+--- Page 22 ---
+National Skills Passport (NSP) System — Software Design Description
+automatically up to the bounded retry_count (FR-LEDG-06), and escalated to the Super Administrator if  
+retries are exhausted.
+Figure 9. Review, approve, client-side sign, and mint sequence — the core trust-establishing flow.
+6.3.2 Revoking a Credential
+Figure 11 shows administrative revocation. A Super Administrator searches for a credential, confirms a  
+step-up MFA challenge, and supplies a mandatory revocation_reason. The module updates only the off-
+chain is_revoked flag and revocation_reason (FR-LEDG-05); the on-chain transaction, hash, and block are 
+never modified. The Worker Mobile Wallet is notified so the credential shows Revoked on its next status 
+check.
+Figure 10. Administrative credential revocation — off-chain flag only, on-chain history preserved.
+Page 22 of 64
+--- Page 23 ---
+National Skills Passport (NSP) System — Software Design Description
+6.4 Public Verification Module
+Primary responsibility: free public lookup, off-chain metadata retrieval, live hash reconciliation against the 
+smart contract's stored record, and returning one of three verification states.
+Design Responsibilities
+• FR-VERI-01: Provide a public verification interface with no authentication or login barrier.
+• FR-VERI-02: Accept dynamic camera QR scans or direct credential-identifier text queries.
+• FR-VERI-03: Fetch off-chain metadata, recompute the SHA-256 digest, query the smart contract for 
+the anchored hash, compare, and check the revocation flag.
+• FR-VERI-04: Return one of Valid (matching hashes), Tampered (mismatched hashes), or Revoked 
+(flagged status).
+• FR-VERI-05: Cache repeated lookups for a short, bounded TTL to keep response times within the 2-
+second performance target (NFR-PER-01).
+• FR-VERI-06: Apply the same 60-requests-per-minute-per-IP rate limit as the rest of the platform.
+Design Detail
+Figure 12 shows the employer-side verification sequence. After the 60-req/min rate limit is enforced (FR-
+VER-04 / NFR-PER-02), the Verification module first checks Redis for a cached result within a bounded TTL. 
+On a cache miss, it fetches off-chain metadata (trade, grade, hub — never raw PII), recomputes the SHA-
+256 digest, and issues a read-only ethers.js call to the smart contract for the anchored hash. The three-way 
+comparison (hash match, hash mismatch, or is_revoked flag) determines the returned state, which the  
+DApp renders with visually distinct styling so Valid, Tampered, and Revoked never look alike. The same  
+logic drives the Worker Mobile Wallet's own live status refresh, shown in Figure 13.
+Page 23 of 64
+--- Page 24 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 11. Verifier DApp sequence — QR/manual lookup, cache-then-chain hash reconciliation, three-state result.
+Page 24 of 64
+--- Page 25 ---
+National Skills Passport (NSP) System — Software Design Description
+6.5 Client Application Design
+6.5.1 Issuer Portal (React Web)
+• FR-ISS-01: Present role-specific (RBAC) dashboard views, hiding actions the current role cannot 
+perform.
+• FR-ISS-02: Provide a candidate-enrolment form with photo upload via pre-signed S3 URL.
+• FR-ISS-03: Provide a score-and-media entry screen restricted to the Trade Tester role, saving 
+records as DRAFT.
+• FR-ISS-04: Provide an approval queue for Center Superintendents with Approve / Reject actions; 
+approval triggers local browser-side signing.
+• FR-ISS-05: Use browser IndexedDB to encrypt and locally queue records during outages, auto-
+syncing on reconnect.
+• FR-ISS-06: Provide a Super Administrator monitoring dashboard for minting-queue health, per-hub 
+enrolment progress, and audit logs.
+• FR-ISS-07: Enforce MFA at every login and step-up authentication before irreversible actions 
+(revocation, role changes).
+6.5.2 Worker Mobile Wallet (React Native)
+• FR-WAL-01: Render a dynamic, scannable QR code encoding the credential identifier / DID 
+reference.
+• FR-WAL-02: Generate a downloadable, shareable PDF of the credential (details, trade, grade, QR).
+• FR-WAL-03: Encrypt and cache the credential payload on-device (iOS Keychain / Android 
+EncryptedSharedPreferences) for offline presentation.
+• FR-WAL-04: Display the credential's live status (Valid / Revoked) whenever network is available.
+• FR-WAL-05: Support Android and iOS with a clean, low-literacy-friendly layout.
+Figure 13 shows the wallet's full lifecycle: one-time activation from a hub-issued link/QR (no portal login, 
+decrypting and caching the credential on-device per FR-WAL-03), live status refresh with a cache-miss  
+hash-reconciliation path identical in structure to the Verifier DApp's, offline-cached status display with a  
+last-verified timestamp, QR presentation, and PDF export — all of which continue to function entirely  
+offline once the credential has been activated once.
+Page 25 of 64
+--- Page 26 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 12. Worker Mobile Wallet sequence — activation, live/offline status, QR presentation, PDF export.
+6.5.3 Verifier DApp (React Web)
+• FR-VER-01: Provide a camera-based QR scanner as well as a manual credential-identifier text-entry 
+field.
+• FR-VER-02: Display real-time hash-reconciliation results within the 2-second performance target.
+• FR-VER-03: Require no registration, login, or payment at any point.
+• FR-VER-04: Present a shareable verification receipt an employer can retain for their own records.
+The Verifier DApp's design is detailed in Section 6.4 (Figure 12), as its behavior is defined almost entirely by 
+the Public Verification Module it calls.
+Page 26 of 64
+--- Page 27 ---
+National Skills Passport (NSP) System — Software Design Description
+7. Behavioral Design — State Dynamics
+This section formalizes the four state machines that govern the credential lifecycle. Each state machine  
+corresponds directly to an ENUM status field in the data design (Section 5) and to transitions already  
+traced through the sequence diagrams in Section 6.
+7.1 Assessment Record State Machine
+Governs assessment_records.status. A record starts as Draft, moves to Submitted when the Trade Tester 
+submits it (FR-ISS-03), and from Submitted either to Approved (superintendent approves and signs, FR-ISS-
+04) or to Rejected (superintendent rejects with a reason, FR-CAND-07). A Rejected record is system-auto-
+returned to Draft for correction. An Approved record transitions to Minted only once the Ledger module 
+asynchronously confirms the mint (FR-CAND-08).
+Figure 13. Assessment record state machine: Draft → Submitted → Approved/Rejected → Minted.
+7.2 Minting Queue State Machine
+Governs minting_queue.status. An Approved record enqueues as Queued; the signed request is relayed  
+via ethers.js and moves to Broadcasted (FR-LEDG-03). The smart contract then either verifies the signature 
+and mints, moving the entry to Confirmed (FR-LEDG-09), or the transaction fails, moving it to Failed. Failed 
+entries auto-retry back to Broadcasted up to a bounded retry_count (FR-LEDG-06); once retries are  
+exhausted, the entry is flagged for ManualIntervention by the Super Administrator.
+Page 27 of 64
+--- Page 28 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 14. Minting queue state machine: Queued → Broadcasted → Confirmed / Failed → ManualIntervention.
+7.3 Credential Revocation State Machine
+Governs credentials.is_revoked. A minted credential is Active until a Super Administrator sets is_revoked 
+= true with a mandatory reason (FR-LEDG-05), moving it to Revoked. This is a one-way, off-chain flag only 
+— the underlying blockchain transaction, hash, and minting record are never altered, preserving a  
+complete and tamper-evident audit history regardless of revocation.
+Page 28 of 64
+--- Page 29 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 15. Credential revocation state machine — one-way, off-chain flag; on-chain history is immutable.
+7.4 Verification Result State Machine
+Governs the transient result of a single verification lookup (Section 6.4). From Checking, the module  
+transitions to Valid when the off-chain hash matches the on-chain hash and the credential is not revoked, 
+to Tampered when the hashes do not match, or to Revoked when the is_revoked flag is set — satisfying FR-
+VERI-04's requirement for three clearly distinguishable outcomes.
+Figure 16. Verification result state machine: Checking → Valid / Tampered / Revoked.
+Page 29 of 64
+--- Page 30 ---
+National Skills Passport (NSP) System — Software Design Description
+8. Human–Computer Interface Design
+This section presents the information architecture (sitemap) and primary interaction flow for each of the 
+three client applications, consistent with the usability requirements NFR-UX-01 through NFR-UX-04.
+8.1 Issuer Portal
+The Issuer Portal's navigation is organized into four sections that mirror the RBAC model: Auth (login, MFA, 
+recovery), Trade Tester functions, Center Superintendent functions, and Super Admin functions (NFR-UX-
+01). Screen IDs (IP-01 through IP-13) referenced throughout Section 6's sequence diagrams map directly to 
+this sitemap.
+Figure 17. Issuer Portal sitemap — IP-01 through IP-13, organized by role.
+8.1.1 Trade Tester Flow
+Figure 18 traces a Trade Tester's full working session: login and MFA, candidate enrolment with a NADRA 
+CNIC match/no-match decision branch, score and media entry saved as DRAFT, and a connectivity decision 
+branch that routes through the encrypted IndexedDB offline queue when the hub is offline, auto-syncing 
+once connectivity is restored (Section 6.2.4).
+Page 30 of 64
+--- Page 31 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 18. Trade Tester end-to-end user flow, including offline-queue branch.
+8.1.2 Center Superintendent Flow
+Figure 19 traces the approval decision: from the Approval Queue, the Superintendent either rejects  
+(mandatory reason, record returns to Draft) or approves, which triggers step-up MFA, local hub-key  
+signing, and submission to the Blockchain Minting & Ledger Module, ending once the record's status  
+moves to Minted.
+Page 31 of 64
+--- Page 32 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 19. Center Superintendent approval and local-signing user flow.
+8.1.3 Super Administrator Flow
+Figure 20 shows the Super Admin's monitoring and management surface: minting-queue health, per-hub 
+enrolment progress, session/audit log viewing, user and hub management, and credential search-and-
+revoke (with mandatory step-up MFA and reason, preserving on-chain history per Section 7.3).
+Page 32 of 64
+--- Page 33 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 20. Super Administrator monitoring and management user flow.
+Page 33 of 64
+--- Page 34 ---
+National Skills Passport (NSP) System — Software Design Description
+8.1.4 Representative Wireframes
+The following high-fidelity wireframes realize the Issuer Portal sitemap (Figure 15) and the three role-
+based flows above. Each screen is labelled with the sitemap ID it corresponds to where one was assigned; 
+screens supporting cross-cutting concerns (notifications, settings, device management) are shared across 
+roles.
+Authentication (IP-01 – IP-03)
+Figure 21. IP-01 — Issuer Portal login screen, with demo quick-login and account-state previews.
+Figure 22. IP-02 — MFA challenge screen (TOTP code entry, FR-AUTH-01).
+Page 34 of 64
+--- Page 35 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 23. IP-03 — Account recovery via single-use backup code (FR-AUTH-08).
+Page 35 of 64
+--- Page 36 ---
+National Skills Passport (NSP) System — Software Design Description
+Trade Tester Screens (IP-04 – IP-07)
+Figure 24. IP-04 — Trade Tester dashboard, showing hub progress toward the 60-candidate target.
+Figure 25. IP-05 — Candidate enrolment form with NADRA verification action (FR-CAND-02A).
+Page 36 of 64
+--- Page 37 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 26. IP-06 — Score & media entry: candidate lookup step before score capture (FR-ISS-03).
+Page 37 of 64
+--- Page 38 ---
+National Skills Passport (NSP) System — Software Design Description
+Center Superintendent Screens (IP-08 – IP-10)
+Figure 27. IP-08 — Center Superintendent dashboard with pending-approval queue summary.
+Figure 28. IP-09 — Approval Queue, filterable by trade, tester, and status (FR-ISS-04).
+Page 38 of 64
+--- Page 39 ---
+National Skills Passport (NSP) System — Software Design Description
+Super Administrator Screens (IP-11 – IP-13)
+Figure 29. IP-11 — Super Admin System Monitoring dashboard — hub status, minting queue, and system service 
+health.
+Figure 30. IP-11/12 — Credentials view — minting queue, confirmed, and failed states with manual Mint Now retry 
+(FR-LEDG-06).
+Page 39 of 64
+--- Page 40 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 31. IP-13 — Credential Revocation screen — revocations are logged and never alter the original blockchain 
+record (FR-LEDG-05).
+Figure 32. IP-12 — Device Health — per-hub device authorization and revocation, supporting device-fingerprint 
+binding (FR-AUTH-04).
+Page 40 of 64
+--- Page 41 ---
+National Skills Passport (NSP) System — Software Design Description
+Shared Screens
+Figure 33. Notifications — role-filtered activity feed (approvals, enrolments, system, security).
+Figure 34. Settings — profile, security, and read-only role/hub assignment, shared across all three portal roles.
+Page 41 of 64
+--- Page 42 ---
+National Skills Passport (NSP) System — Software Design Description
+8.2 Worker Mobile Wallet
+The wallet's information architecture separates a login-free Root (activation, MFA challenge if applicable, 
+account recovery) from the Wallet/Home area (credential overview, detail, QR display, PDF export) and  
+Settings, consistent with FR-WAL-05's low-literacy-friendly design goal.
+Figure 35. Worker Mobile Wallet sitemap — WW-01 through WW-08.
+Figure 22 traces the candidate's post-minting journey: receiving the activation link/QR from the hub,  
+installing and activating the wallet, on-device encrypted caching, and then a live network-availability  
+decision that determines whether status is refreshed from the Verification module or the last cached  
+Page 42 of 64
+--- Page 43 ---
+National Skills Passport (NSP) System — Software Design Description
+status is shown — in both cases resolving to a green (Valid) or red (Revoked) banner before the candidate 
+presents their QR or exports a PDF.
+Figure 36. Worker/Candidate post-activation user flow — online and offline status paths.
+Page 43 of 64
+--- Page 44 ---
+National Skills Passport (NSP) System — Software Design Description
+8.2.1 Representative Wireframes
+The wireframes below realize the wallet sitemap (Figure 21): WW-04 (Home), WW-05 (QR presentation), 
+WW-06 (credential detail), WW-08 (settings), plus the verification-history and revoked-state screens that 
+extend WW-06 per the Worker use case view (Section 9.3).
+Figure 37. WW-04 — Home / Credential Overview, showing a Valid and a Revoked credential side by side.
+Page 44 of 64
+--- Page 45 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 38. WW-05 — QR Display for in-person presentation to an employer (FR-WAL-01).
+Page 45 of 64
+--- Page 46 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 39. WW-06 — Credential Detail, the full W3C VC view rendered for the holder (FR-WAL-02).
+Page 46 of 64
+--- Page 47 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 40. Verification history — log of who checked this credential and when.
+Page 47 of 64
+--- Page 48 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 41. WW-08 — Settings, including offline storage and cached-credential controls (FR-WAL-03).
+Page 48 of 64
+--- Page 49 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 42. Revoked-credential state screen, shown when the live or cached status check returns Revoked (Section 
+7.4).
+Page 49 of 64
+--- Page 50 ---
+National Skills Passport (NSP) System — Software Design Description
+8.3 Verifier DApp
+The Verifier DApp's sitemap is intentionally the shallowest of the three applications, reflecting FR-VER-03's 
+no-registration requirement: a landing/scan-search screen branches to either a camera QR scanner or  
+manual ID entry, both converging on a single verification-result screen and an optional shareable receipt.
+Figure 43. Verifier DApp sitemap — VD-01 through VD-05.
+Figure 24 shows the same flow as an end-to-end decision tree, ending in one of the three verification  
+outcomes defined by the state machine in Section 7.4.
+Page 50 of 64
+--- Page 51 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 44. External Verifier (Employer) end-to-end verification user flow.
+Page 51 of 64
+--- Page 52 ---
+National Skills Passport (NSP) System — Software Design Description
+8.3.1 Representative Wireframes
+The wireframes below realize the Verifier DApp sitemap (Figure 23): VD-01 (landing/scan-search)  
+branching to VD-02 (camera scanner) or VD-03 (manual entry), consistent with FR-VER-01 and FR-VER-03's 
+no-login requirement.
+Figure 45. VD-01 — Verifier DApp landing screen — choice of QR scan or manual Credential ID entry, no login.
+Page 52 of 64
+--- Page 53 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 46. VD-02 — Camera-based QR scanner with scanning tips and a fallback to manual entry.
+Page 53 of 64
+--- Page 54 ---
+National Skills Passport (NSP) System — Software Design Description
+Figure 47. VD-03 — Manual Credential ID entry, with demo IDs illustrating the Valid / Tampered / Revoked / Not-
+found outcomes.
+Page 54 of 64
+--- Page 55 ---
+National Skills Passport (NSP) System — Software Design Description
+9. Use Case Views
+The five use case diagrams below are the requirements-level views from which the module and interface 
+designs in Sections 6 and 8 were derived. Each diagram shows one actor's primary use cases, their  
+included/extended supporting use cases, and the external systems they touch.
+9.1 Trade Tester
+Figure 48. Use case diagram — Trade Tester (candidate assessment & data entry).
+Page 55 of 64
+--- Page 56 ---
+National Skills Passport (NSP) System — Software Design Description
+9.2 Center Superintendent
+Figure 49. Use case diagram — Center Superintendent (assessment approval & credential issuance).
+Page 56 of 64
+--- Page 57 ---
+National Skills Passport (NSP) System — Software Design Description
+9.3 Worker (Certificate Holder)
+Figure 50. Use case diagram — Worker (owns and manages their NSP credential).
+Page 57 of 64
+--- Page 58 ---
+National Skills Passport (NSP) System — Software Design Description
+9.4 Employer (Verifier)
+Figure 51. Use case diagram — Employer / Verifier (credential authenticity lookup).
+Page 58 of 64
+--- Page 59 ---
+National Skills Passport (NSP) System — Software Design Description
+9.5 Admin (System Administrator)
+Figure 52. Use case diagram — Admin (system-wide configuration and monitoring).
+Page 59 of 64
+--- Page 60 ---
+National Skills Passport (NSP) System — Software Design Description
+10. Non-Functional Design
+The following non-functional requirements from the SRS directly shaped the architectural and component 
+design decisions in Sections 4–6. They are restated here as design constraints that any implementation  
+must satisfy and any test plan must verify.
+10.1 Security, Cryptography & Privacy
+• NFR-SEC-01: TLS 1.3 in transit; AES-256 at rest across databases, S3 buckets, and client-side caches.
+• NFR-SEC-02: Asymmetric key signing (ECDSA or Ed25519); public identities managed as DIDs.
+• NFR-SEC-03: Zero-PII ledger policy — names, CNIC, and photographs remain off-chain; only SHA-
+256 digests are anchored.
+• NFR-SEC-04: All five hub laptops run centrally managed EDR with USB storage ports blocked.
+• NFR-SEC-05: Backend communication exclusively over secure REST APIs using OAuth 2.0 
+tokenization.
+• NFR-SEC-06: Independent security review of the minting contract and its multisig admin 
+configuration prior to mainnet deployment.
+10.2 Performance, Throughput & Rate Limiting
+• NFR-PER-01: Public credential lookups complete and display within 2.0 seconds under normal 
+conditions.
+• NFR-PER-02: API Gateway rate limits capped at 60 requests/minute/IP.
+• NFR-PER-03: Blockchain operations execute on Polygon L2 to keep confirmation times under 5 
+seconds.
+10.3 Infrastructure, Availability & Resilience
+• NFR-INF-01: Application runs in isolated AWS VPC subnets behind NACLs and a WAF.
+• NFR-INF-02: RDS PostgreSQL runs multi-node failover with automated backups.
+• NFR-INF-03: Operational availability maintained across a 24-month horizon.
+• NFR-INF-04: Field applications implement a secure, encrypted offline queue that auto-synchronizes 
+on reconnect.
+10.4 Standards Compliance, Licensing & SLA
+• NFR-SLA-01: Open standards only (W3C VC, Blockcerts) — no vendor lock-in, no recurring licensing 
+fees.
+• NFR-SLA-02: Verifier DApp remains permanently free for external employers and verification 
+agencies.
+• NFR-SLA-03: Digital-law and data-protection compliance audit during Year 2.
+• NFR-SLA-04: 6-month extended code warranty followed by an 18-month paid SLA.
+Page 60 of 64
+--- Page 61 ---
+National Skills Passport (NSP) System — Software Design Description
+10.5 Usability (UI/UX)
+• NFR-UX-01: Issuer Portal presents role-scoped navigation (Section 8.1).
+• NFR-UX-02: Worker Mobile Wallet uses a clean, low-literacy-friendly layout (Section 8.2).
+• NFR-UX-03: Verifier DApp is usable on desktop and mobile browsers without installation (Section 
+8.3).
+• NFR-UX-04: All UI/UX design work undergoes an initial wireframe review with unlimited revisions 
+during the design phase.
+10.6 Maintainability
+• NFR-MNT-01: Deployable as a single versioned unit via one CI/CD pipeline, each internal module 
+maintaining a clearly versioned interface.
+• NFR-MNT-02: All authentication, approval, minting, and revocation events logged in an immutable 
+audit trail.
+Page 61 of 64
+--- Page 62 ---
+National Skills Passport (NSP) System — Software Design Description
+11. Requirements Traceability Matrix
+Table 12 maps each requirement group to the design section, sequence/state diagram, and data entity  
+that realizes it, so that any requirement's implementation can be located directly in this design.
+Table 12. Requirement group → design element traceability
+Requirement 
+Group Design Section Diagram(s) Primary Data Entities
+FR-AUTH-01..08 6.1 Auth & Identity Module Figure 5 (Login & MFA) auth.users, auth.sessions
+FR-CAND-01..08 6.2 Candidate Assessment 
+Module Figures 6–9
+candidate.candidates, 
+candidate.assessment_rec
+ords
+FR-LEDG-01..10 6.3 Blockchain Minting & 
+Ledger Module Figures 10–11 ledger.minting_queue, 
+ledger.credentials
+FR-VERI-01..06 6.4 Public Verification Module Figure 12 ledger.credentials (read-
+only)
+FR-CHAIN-01..08 4. System Architecture; 6.3 
+Ledger Module Figures 2, 10 Smart contract / on-chain 
+layer
+FR-INF-01..08 4.2 Deployment Architecture Figure 2 AWS VPC, RDS, S3, hub 
+hardware
+FR-ISS-01..07 6.5.1 Issuer Portal; 8.1 Figures 18–20 auth.users (role), 
+candidate/ledger schemas
+FR-WAL-01..05 6.5.2 Worker Mobile Wallet; 
+8.2 Figures 13, 22 ledger.credentials (cached 
+copy)
+FR-VER-01..04 6.5.3 Verifier DApp; 8.3 Figures 12, 24 ledger.credentials (read-
+only)
+NFR-SEC-01..06 10.1 Figures 2, 5, 10 All schemas; S3; smart 
+contract
+NFR-PER-01..03 10.2 Figure 12 Redis cache; ledger 
+schema
+NFR-INF-01..04 10.3 Figure 2, 9 AWS VPC; IndexedDB 
+offline queue
+Page 62 of 64
+--- Page 63 ---
+National Skills Passport (NSP) System — Software Design Description
+12. Design-Relevant Risk Considerations
+The following risks from the project's risk register directly informed design decisions elsewhere in this  
+document and are restated here with a pointer to the design mitigation.
+Table 13. Risk → design mitigation
+Risk Design Mitigation
+Connectivity drops at remote hubs Encrypted browser-side / on-device offline queue with auto-sync 
+(Sections 6.2.4, 6.5.2, Figures 9, 13).
+Public blockchain storage of national ID 
+data
+Zero-PII blockchain policy; only SHA-256 digests on-chain; blind-salt CNIC 
+hashing off-chain (Sections 4–5, FR-CAND-03, FR-CHAIN-04/05).
+Proxy-admin key compromise or misuse Upgrade authority secured by multisig; independent security review prior 
+to mainnet deployment (FR-LEDG-10, NFR-SEC-06).
+Gas-wallet depletion during the live 
+minting run
+Single pre-funded gas wallet sized for all 300 issuances, with balance-
+monitoring alerts to the Super Administrator (FR-CHAIN-07).
+Staff turnover at rotating regional hubs Role-scoped, low-training-overhead UI (Section 8.1); Super Administrator 
+can reset credentials and reassign roles centrally.
+Page 63 of 64
+--- Page 64 ---
+National Skills Passport (NSP) System — Software Design Description
+13. Glossary of Terms
+Table 14. Glossary
+Term Meaning
+Blind Salt Mapping Combining a per-record cryptographic salt with a CNIC before hashing, so the same CNIC 
+never produces the same hash twice and cannot be reverse-engineered from the ledger.
+Credential Anchoring Writing a SHA-256 hash of a credential's contents into the blockchain via the minting 
+smart contract, so later tampering with the off-chain copy is detectable.
+Modular Monolith
+A single deployable application internally organized into independent domain modules, 
+each with its own schema and interface, communicating via in-process calls and an 
+internal event bus rather than network calls between separate services.
+Proxy Contract An upgradeable smart-contract pattern where a fixed address delegates its logic to a 
+replaceable implementation contract, controlled by a separate admin authority.
+Multisig Multi-signature authorization — an action requires approval from more than one 
+designated party, so no single individual can act alone.
+Gas Wallet A blockchain wallet pre-funded with network currency (MATIC/POL) used to pay 
+transaction fees for minting credentials.
+Off-Chain Storage Conventional encrypted database/object storage (PostgreSQL, S3) holding data that is 
+never written to the blockchain.
+Verifiable Credential (VC) A W3C-standardized, cryptographically signed digital claim that can be independently 
+verified without contacting the original issuer.
+Page 64 of 64
+
+
+======== SRS ========
+Pages: 20
+--- Page 1 ---
+National  Skills  Passport  (NSP)  System  —  SRS 
+SOFTWARE  REQUIREMENTS  SPECIFICATION 
+Blockchain-Anchored  Verifiable  Digital  Credential  Platform  for  Technical  Skills  Certification 
+ 
+Attribute Value Document  Title  System  Requirements  Specification  (SRS)  —  National  Skills  Passport  (NSP)  System  Document  Version  2.1  (Smart-Contract  Minting  Finalized)  Architecture  Style  Modular  Monolith  (Single  Deployable  App)  Target  Deployment  AWS  Cloud  (VPC)  |  Polygon  Layer-2  Blockchain  (Smart-Contract  Minting)  |  5  KP  Testing  Hubs  Project  Scope  300  Verifiable  Credentials  (NSPs)  across  5  testing  points,  60  candidates  per  hub  Implementation  Period  3  months  (Design,  Build  &  Live  Pilot)  Operational  Horizon  24  months  (3-month  setup  +  21-month  operations,  incl.  6-month  warranty  +  18-month  SLA)  Prepared  For  Consolidated  Project  Requirement  /  Project  TOR  —  Technical  Education  &  Skills  Verification  Initiative  Status  Updated  for  internal  build  —  smart-contract  minting  design  finalized   
+ 
+--- Page 2 ---
+Table  of  Contents 
+1.  Introduction  
+2.  Overall  System  Description  
+3.  System  Architecture  
+4.  Functional  Requirements  —  Backend  Modules  
+5.  Functional  Requirements  —  Frontend  /  Client  Applications  
+6.  Blockchain  &  Smart-Contract  Layer  
+7.  Cloud  Infrastructure  &  DevOps  Module  
+8.  Database  Design  Summary  (Consolidated  Data  Model)  
+9.  Non-Functional  Requirements  
+10.  External  Interface  Requirements  
+11.  Implementation  Roadmap  &  Milestones  
+12.  Risk  Register  &  Mitigation  Matrix  
+13.  Acceptance  Criteria  &  Success  Metrics  
+14.  Glossary  of  Terms  
+ 
+--- Page 3 ---
+1.  Introduction 
+1.1  Purpose This  Software  Requirements  Specification  (SRS)  defines  the  complete  functional  and  non-functional  
+requirements
+ 
+for
+ 
+the
+ 
+National
+ 
+Skills
+ 
+Passport
+ 
+(NSP)
+ 
+System
+ 
+—
+ 
+a
+ 
+turnkey,
+ 
+blockchain-anchored
+ 
+digital
+ 
+credentialing
+ 
+platform
+ 
+to
+ 
+be
+ 
+deployed
+ 
+across
+ 
+five
+ 
+technical-training
+ 
+testing
+ 
+hubs.
+ 
+The
+ 
+document
+ 
+translates
+ 
+the
+ 
+Project
+ 
+Terms
+ 
+of
+ 
+Reference
+ 
+(TOR),
+ 
+the
+ 
+finalized
+ 
+architecture,
+ 
+and
+ 
+the
+ 
+smart-contract
+ 
+minting
+ 
+design
+ 
+agreed
+ 
+with
+ 
+the
+ 
+project's
+ 
+blockchain
+ 
+advisor
+ 
+into
+ 
+a
+ 
+single,
+ 
+implementation-ready
+ 
+specification,
+ 
+organized
+ 
+module
+ 
+by
+ 
+module
+ 
+so
+ 
+that
+ 
+development,
+ 
+QA,
+ 
+security
+ 
+review,
+ 
+and
+ 
+commercial
+ 
+costing
+ 
+can
+ 
+all
+ 
+reference
+ 
+the
+ 
+same
+ 
+source
+ 
+of
+ 
+truth.
+ 
+1.2  Scope The  NSP  System  will  issue  300  tamper-evident,  W3C-compliant  Verifiable  Credentials  (VCs)  to  technical  trade  
+candidates
+ 
+assessed
+ 
+at
+ 
+5
+ 
+testing
+ 
+points
+ 
+in
+ 
+Khyber
+ 
+Pakhtunkhwa
+ 
+(KP),
+ 
+with
+ 
+60
+ 
+candidates
+ 
+enrolled
+ 
+per
+ 
+hub.
+ 
+Each
+ 
+credential
+ 
+is
+ 
+minted
+ 
+via
+ 
+a
+ 
+proxy
+ 
+smart
+ 
+contract
+ 
+on
+ 
+the
+ 
+Polygon
+ 
+Layer-2
+ 
+blockchain,
+ 
+which
+ 
+verifies
+ 
+the
+ 
+issuing
+ 
+hub's
+ 
+signature
+ 
+before
+ 
+anchoring
+ 
+a
+ 
+SHA-256
+ 
+cryptographic
+ 
+digest
+ 
+of
+ 
+the
+ 
+credential;
+ 
+all
+ 
+Personally
+ 
+Identifiable
+ 
+Information
+ 
+(PII)
+ 
+—
+ 
+names,
+ 
+CNIC
+ 
+numbers,
+ 
+photographs,
+ 
+and
+ 
+assessment
+ 
+media
+ 
+—
+ 
+remains
+ 
+exclusively
+ 
+in
+ 
+an
+ 
+isolated,
+ 
+encrypted,
+ 
+off-chain
+ 
+relational
+ 
+data
+ 
+store.
+ 
+The
+ 
+system
+ 
+comprises
+ 
+three
+ 
+client
+ 
+applications
+ 
+(Issuer
+ 
+Portal,
+ 
+Worker
+ 
+Mobile
+ 
+Wallet,
+ 
+Verifier
+ 
+DApp),
+ 
+four
+ 
+backend
+ 
+modules
+ 
+within
+ 
+a
+ 
+single
+ 
+modular-monolith
+ 
+application
+ 
+(Auth,
+ 
+Candidate
+ 
+Assessment,
+ 
+Blockchain
+ 
+Minting/Ledger,
+ 
+Public
+ 
+Verification),
+ 
+a
+ 
+smart-contract
+ 
+minting
+ 
+layer,
+ 
+and
+ 
+supporting
+ 
+AWS
+ 
+cloud
+ 
+infrastructure.
+ 
+The
+ 
+engagement
+ 
+covers
+ 
+a
+ 
+3-month
+ 
+build-and-pilot
+ 
+phase
+ 
+followed
+ 
+by
+ 
+a
+ 
+21-month
+ 
+operational
+ 
+phase
+ 
+(6-month
+ 
+warranty
+ 
++
+ 
+18-month
+ 
+paid
+ 
+SLA),
+ 
+for
+ 
+a
+ 
+total
+ 
+24-month
+ 
+horizon.
+ 
+1.3  Definitions,  Acronyms  &  Abbreviations 
+Term Definition NSP  National  Skills  Passport  —  the  verifiable  digital  credential  issued  to  a  candidate  VC  Verifiable  Credential  —  W3C  standard  for  cryptographically  verifiable  digital  claims  DID  Decentralized  Identifier  —  a  globally  unique  identifier  registered  to  a  public  key,  used  to  identify  issuers/testing  hubs  on  the  ledger  PII  Personally  Identifiable  Information  (name,  father's  name,  DOB,  CNIC,  photograph)  L2  /  Polygon  Layer-2  blockchain  network  used  for  low-cost,  fast  transaction  anchoring  Proxy  Contract  An  upgradeable  smart-contract  pattern  where  a  fixed  address  delegates  logic  to  a  replaceable  implementation  contract,  controlled  by  a  separate  admin  authority  Multisig  Multi-signature  authorization  —  an  action  (e.g.,  a  contract  upgrade)  requires  approval  from  more  than  one  designated  party,  so  no  single  individual  can  act  alone  
+--- Page 4 ---
+WAF  Web  Application  Firewall  —  perimeter  security  filtering  malicious  HTTP  traffic  VPC  Virtual  Private  Cloud  —  isolated  AWS  network  segment  MFA  Multi-Factor  Authentication  (TOTP  authenticator  app  or  SMS  OTP)  RBAC  Role-Based  Access  Control  EDR  Endpoint  Detection  &  Response  —  managed  endpoint  security  software  TOR  Terms  of  Reference  —  the  governing  project  requirement  document  SLA  Service  Level  Agreement  —  post-warranty  paid  maintenance  commitment  CNIC  Computerized  National  Identity  Card  (Pakistan)  —  national  ID  number  NADRA  National  Database  &  Registration  Authority  (Pakistan)  —  issuer  of  CNIC   
+1.4  References 
+●
+ 
+Project
+ 
+TOR
+ 
+—
+ 
+Clause-Wise
+ 
+Requirements
+ 
+(source
+ 
+document)
+ 
+●
+ 
+System
+ 
+Requirements
+ 
+Specification
+ 
+(SRS)
+ 
+v2.0
+ 
+—
+ 
+consolidated
+ 
+architecture
+ 
+&
+ 
+schema
+ 
+(source
+ 
+document)
+ 
+●
+ 
+Smart-Contract
+ 
+Minting
+ 
+Design
+ 
+—
+ 
+agreed
+ 
+with
+ 
+project
+ 
+blockchain
+ 
+advisor
+ 
+●
+ 
+NSP
+ 
+Data-Flow
+ 
+Diagram
+ 
+(physical
+ 
+assessment
+ 
+→
+ 
+blockchain-verified
+ 
+credential)
+ 
+●
+ 
+W3C
+ 
+Verifiable
+ 
+Credentials
+ 
+Data
+ 
+Model;
+ 
+Blockcerts
+ 
+open
+ 
+credential
+ 
+standard
+ 
+1.5  Document  Overview Section  2  gives  the  overall  product  description  and  user  classes.  Section  3  presents  the  system  architecture.  
+Sections
+ 
+4–7
+ 
+present
+ 
+detailed,
+ 
+module-wise
+ 
+functional
+ 
+requirements
+ 
+for
+ 
+every
+ 
+backend
+ 
+module,
+ 
+every
+ 
+client
+ 
+application,
+ 
+the
+ 
+blockchain/smart-contract
+ 
+layer,
+ 
+and
+ 
+the
+ 
+cloud
+ 
+infrastructure.
+ 
+Section
+ 
+8
+ 
+consolidates
+ 
+the
+ 
+data
+ 
+model.
+ 
+Section
+ 
+9
+ 
+specifies
+ 
+non-functional
+ 
+requirements.
+ 
+Sections
+ 
+10–14
+ 
+cover
+ 
+interfaces,
+ 
+rollout
+ 
+roadmap,
+ 
+risk
+ 
+management,
+ 
+acceptance
+ 
+criteria,
+ 
+and
+ 
+glossary.
+ 
+2.  Overall  System  Description 
+2.1  Product  Perspective The  NSP  System  is  a  new,  self-contained,  turnkey  platform  rather  than  an  extension  of  an  existing  system.  It  
+replaces
+ 
+slow,
+ 
+manual,
+ 
+paper-based
+ 
+skills-verification
+ 
+workflows
+ 
+with
+ 
+an
+ 
+instantly
+ 
+and
+ 
+permanently
+ 
+verifiable
+ 
+digital
+ 
+credential.
+ 
+The
+ 
+platform
+ 
+introduces
+ 
+a
+ 
+blockchain-based
+ 
+institutional
+ 
+trust
+ 
+layer:
+ 
+once
+ 
+a
+ 
+testing
+ 
+centre
+ 
+records
+ 
+and
+ 
+approves
+ 
+an
+ 
+assessment
+ 
+grade,
+ 
+the
+ 
+resulting
+ 
+credential
+ 
+is
+ 
+minted
+ 
+through
+ 
+a
+ 
+smart
+ 
+contract
+ 
+and
+ 
+cryptographically
+ 
+anchored
+ 
+so
+ 
+that
+ 
+any
+ 
+subsequent
+ 
+tampering
+ 
+is
+ 
+mathematically
+ 
+detectable.
+ 
+2.2  Product  Functions  (Summary) 
+●
+ 
+Secure,
+ 
+MFA-protected
+ 
+data
+ 
+entry
+ 
+of
+ 
+candidate
+ 
+assessment
+ 
+scores
+ 
+by
+ 
+authorized
+ 
+trade
+ 
+testers
+ 
+--- Page 5 ---
+●
+ 
+Two-tier
+ 
+approval
+ 
+workflow
+ 
+(Trade
+ 
+Tester
+ 
+→
+ 
+Center
+ 
+Superintendent)
+ 
+before
+ 
+any
+ 
+credential
+ 
+is
+ 
+minted
+ 
+●
+ 
+Automated
+ 
+compilation
+ 
+of
+ 
+approved
+ 
+records
+ 
+into
+ 
+W3C
+ 
+Verifiable
+ 
+Credential
+ 
+/
+ 
+Blockcerts
+ 
+JSON
+ 
+●
+ 
+SHA-256
+ 
+hashing
+ 
+of
+ 
+credential
+ 
+payloads,
+ 
+verified
+ 
+by
+ 
+the
+ 
+hub's
+ 
+signature,
+ 
+and
+ 
+minted
+ 
+via
+ 
+smart
+ 
+contract
+ 
+on
+ 
+the
+ 
+Polygon
+ 
+L2
+ 
+blockchain
+ 
+●
+ 
+Issuance
+ 
+of
+ 
+a
+ 
+mobile
+ 
+digital
+ 
+wallet
+ 
+credential
+ 
+with
+ 
+a
+ 
+scannable
+ 
+QR
+ 
+code
+ 
+and
+ 
+downloadable
+ 
+PDF
+ 
+●
+ 
+Free,
+ 
+login-free
+ 
+public
+ 
+verification
+ 
+for
+ 
+international
+ 
+employers
+ 
+and
+ 
+agencies,
+ 
+with
+ 
+real-time
+ 
+hash
+ 
+reconciliation
+ 
+●
+ 
+Resilient
+ 
+offline
+ 
+data
+ 
+capture
+ 
+at
+ 
+all
+ 
+5
+ 
+hubs
+ 
+with
+ 
+encrypted
+ 
+local
+ 
+queueing
+ 
+and
+ 
+auto-sync
+ 
+●
+ 
+Administrative
+ 
+revocation
+ 
+of
+ 
+compromised
+ 
+or
+ 
+erroneous
+ 
+credentials
+ 
+without
+ 
+altering
+ 
+blockchain
+ 
+history
+ 
+2.3  User  Classes  &  Characteristics 
+Role Primary  Responsibilities Access  Restrictions Trade  Tester  Enrol  candidates;  enter  assessment  scores  and  media  at  the  assigned  hub;  work  offline  when  needed  
+Cannot  approve,  mint,  or  revoke  credentials;  scoped  to  own  hub  
+Center  Superintendent  Review  and  approve/reject  submitted  assessment  records;  locally  sign  approved  records  for  minting  
+Cannot  alter  historical/minted  records;  scoped  to  own  hub  
+Super  Administrator  /  Provincial  Authority  
+System-wide  monitoring,  user  management,  credential  revocation,  hub  configuration  
+Cannot  manually  alter  historical  blockchain  transaction  hashes;  cannot  unilaterally  upgrade  the  smart  contract  (multisig  required)  Worker  /  Candidate  Views  and  presents  own  NSP  via  mobile  wallet  (QR  /  PDF)  
+Read-only  access  to  own  credential;  no  portal  login  External  Verifier  (Employer  /  Agency)  
+Looks  up  and  verifies  a  credential's  authenticity  
+No  authentication  required;  read-only,  rate-limited  public  access   
+2.4  Operating  Environment 
+●
+ 
+Cloud:
+ 
+AWS
+ 
+(VPC-isolated),
+ 
+Region
+ 
+selected
+ 
+for
+ 
+latency
+ 
+to
+ 
+KP
+ 
+/
+ 
+Pakistan
+ 
+●
+ 
+Blockchain:
+ 
+Polygon
+ 
+Layer-2
+ 
+network
+ 
+(Amoy
+ 
+testnet
+ 
+for
+ 
+pilot
+ 
+/
+ 
+staging,
+ 
+mainnet
+ 
+for
+ 
+production
+ 
+issuance)
+ 
+●
+ 
+Server
+ 
+runtime:
+ 
+Node.js
+ 
++
+ 
+Express,
+ 
+single
+ 
+application
+ 
+process
+ 
+organized
+ 
+into
+ 
+four
+ 
+internal
+ 
+modules
+ 
+●
+ 
+Client
+ 
+platforms:
+ 
+modern
+ 
+evergreen
+ 
+browsers
+ 
+(Issuer
+ 
+Portal,
+ 
+Verifier
+ 
+DApp)
+ 
+and
+ 
+Android/iOS
+ 
+smartphones
+ 
+(Worker
+ 
+Mobile
+ 
+Wallet)
+ 
+●
+ 
+Field
+ 
+hardware:
+ 
+5
+ 
+commercial-grade
+ 
+laptops
+ 
+(Dell/HP
+ 
+or
+ 
+equivalent)
+ 
+with
+ 
+centrally
+ 
+managed
+ 
+EDR,
+ 
+one
+ 
+per
+ 
+testing
+ 
+hub
+ 
+●
+ 
+Connectivity:
+ 
+5
+ 
+dedicated
+ 
+enterprise
+ 
+4G
+ 
+data
+ 
+connections,
+ 
+one
+ 
+per
+ 
+hub,
+ 
+with
+ 
+offline-first
+ 
+design
+ 
+for
+ 
+outage
+ 
+tolerance
+ 
+2.5  Design  &  Implementation  Constraints 
+●
+ 
+Zero-PII
+ 
+blockchain
+ 
+policy
+ 
+—
+ 
+no
+ 
+personal
+ 
+data
+ 
+may
+ 
+ever
+ 
+be
+ 
+written
+ 
+on-chain,
+ 
+only
+ 
+SHA-256
+ 
+digests
+ 
+--- Page 6 ---
+●
+ 
+Must
+ 
+use
+ 
+open,
+ 
+license-free
+ 
+standards
+ 
+(W3C
+ 
+VC,
+ 
+Blockcerts,
+ 
+public
+ 
+L2
+ 
+ledgers)
+ 
+to
+ 
+avoid
+ 
+vendor
+ 
+lock-in
+ 
+and
+ 
+recurring
+ 
+software
+ 
+licensing
+ 
+costs
+ 
+●
+ 
+API
+ 
+rate
+ 
+limiting
+ 
+fixed
+ 
+at
+ 
+an
+ 
+illustrative
+ 
+ceiling
+ 
+of
+ 
+60
+ 
+requests/minute/IP
+ 
+●
+ 
+All
+ 
+5
+ 
+field
+ 
+laptops
+ 
+must
+ 
+have
+ 
+USB
+ 
+storage
+ 
+ports
+ 
+disabled
+ 
+and
+ 
+run
+ 
+managed
+ 
+EDR
+ 
+●
+ 
+Verifier
+ 
+DApp
+ 
+must
+ 
+remain
+ 
+free-of-charge
+ 
+permanently
+ 
+for
+ 
+external
+ 
+employers
+ 
+●
+ 
+Smart-contract
+ 
+upgrade
+ 
+authority
+ 
+must
+ 
+require
+ 
+multisig
+ 
+approval
+ 
+—
+ 
+no
+ 
+single
+ 
+administrator
+ 
+may
+ 
+act
+ 
+alone
+ 
+●
+ 
+Budget
+ 
+structured
+ 
+against
+ 
+a
+ 
+baseline
+ 
+exchange-rate
+ 
+assumption
+ 
+of
+ 
+USD
+ 
+1
+ 
+=
+ 
+PKR
+ 
+278
+ 
+2.6  Assumptions  &  Dependencies 
+●
+ 
+Reliable
+ 
+(if
+ 
+intermittent)
+ 
+4G
+ 
+connectivity
+ 
+is
+ 
+available
+ 
+at
+ 
+or
+ 
+near
+ 
+each
+ 
+of
+ 
+the
+ 
+5
+ 
+hubs
+ 
+●
+ 
+A
+ 
+gas-fee
+ 
+wallet
+ 
+will
+ 
+be
+ 
+pre-funded
+ 
+in
+ 
+MATIC/POL
+ 
+to
+ 
+cover
+ 
+all
+ 
+300
+ 
+planned
+ 
+mint
+ 
+transactions
+ 
+●
+ 
+Testing-hub
+ 
+locations
+ 
+and
+ 
+personnel
+ 
+will
+ 
+be
+ 
+confirmed
+ 
+and
+ 
+onboarded
+ 
+per
+ 
+the
+ 
+agreed
+ 
+roadmap
+ 
+(Weeks
+ 
+5–6)
+ 
+●
+ 
+NADRA
+ 
+CNIC
+ 
+values
+ 
+are
+ 
+supplied
+ 
+by
+ 
+candidates
+ 
+at
+ 
+enrolment
+ 
+and
+ 
+are
+ 
+never
+ 
+transmitted
+ 
+in
+ 
+raw
+ 
+form
+ 
+beyond
+ 
+the
+ 
+Candidate
+ 
+Assessment
+ 
+module
+ 
+boundary
+ 
+●
+ 
+Multisig
+ 
+approvers
+ 
+for
+ 
+smart-contract
+ 
+admin
+ 
+authority
+ 
+are
+ 
+designated
+ 
+and
+ 
+available
+ 
+before
+ 
+mainnet
+ 
+deployment
+ 
+●
+ 
+A
+ 
+national
+ 
+digital-law
+ 
+/
+ 
+data-protection
+ 
+compliance
+ 
+audit
+ 
+will
+ 
+be
+ 
+commissioned
+ 
+in
+ 
+Year
+ 
+2
+ 
+of
+ 
+operations
+ 
+3.  System  Architecture 
+3.1  Architectural  Style The  platform  follows  a  modular  monolith  architecture.  A  single  Node.js/Express  application  is  internally  
+organized
+ 
+into
+ 
+four
+ 
+domain
+ 
+modules
+ 
+—
+ 
+identity,
+ 
+candidate
+ 
+assessment,
+ 
+blockchain
+ 
+minting,
+ 
+and
+ 
+public
+ 
+verification
+ 
+—
+ 
+each
+ 
+with
+ 
+a
+ 
+clearly
+ 
+defined
+ 
+internal
+ 
+interface
+ 
+and
+ 
+its
+ 
+own
+ 
+PostgreSQL
+ 
+schema
+ 
+within
+ 
+one
+ 
+shared
+ 
+database.
+ 
+Modules
+ 
+communicate
+ 
+via
+ 
+in-process
+ 
+calls
+ 
+and
+ 
+an
+ 
+internal
+ 
+event
+ 
+bus
+ 
+for
+ 
+asynchronous
+ 
+flows
+ 
+(e.g.,
+ 
+approval-triggered
+ 
+minting);
+ 
+no
+ 
+module
+ 
+reaches
+ 
+directly
+ 
+into
+ 
+another
+ 
+module's
+ 
+schema.
+ 
+All
+ 
+external
+ 
+traffic
+ 
+enters
+ 
+through
+ 
+a
+ 
+single
+ 
+AWS
+ 
+API
+ 
+Gateway
+ 
+/
+ 
+WAF
+ 
+layer
+ 
+before
+ 
+being
+ 
+routed
+ 
+to
+ 
+the
+ 
+application.
+ 
+3.2  High-Level  Component  Diagram 
+Layer Components Client  Applications  Issuer  Portal  (React  Web,  MFA  login)  ·  Worker  Mobile  Wallet  (React  Native,  QR  +  PDF)  ·  Verifier  DApp  (React  Web,  public,  no  login)  Edge  /  Security  Layer  AWS  WAF  ·  Route  53  DNS  ·  Rate  Limiting  (60  req/min/IP)  ·  OAuth  2.0  /  TLS  1.3  termination  ·  API  Gateway  routing  Application  Layer  (Modular  Monolith)  Single  Node.js/Express  application,  internally  modularized:  Auth  &  Identity  ·  Candidate  Assessment  ·  Blockchain  Minting  &  Ledger  ·  Public  Verification  Off-Chain  Data  Layer  Single  PostgreSQL  database  (auth  /  candidate  /  ledger  schemas)  ·  Redis  Cache  ·  AWS  S3  (photos  /  PDFs  /  assessment  media)  
+--- Page 7 ---
+On-Chain  /  Ledger  Layer  Polygon  Layer-2  network  —  a  proxy  smart  contract  verifies  each  hub's  signature  and  mints  the  credential,  anchoring  only  its  SHA-256  hash  digest;  interaction  via  ethers.js   
+3.3  End-to-End  Data  Flow The  credential  lifecycle  proceeds  through  five  stages,  as  captured  in  the  project's  data-flow  diagram:  
+●
+ 
+Stage
+ 
+1
+ 
+—
+ 
+Physical
+ 
+Skills
+ 
+Assessment:
+ 
+Candidate
+ 
+is
+ 
+tested
+ 
+in
+ 
+person
+ 
+at
+ 
+the
+ 
+testing
+ 
+hub.
+ 
+●
+ 
+Stage
+ 
+2
+ 
+—
+ 
+Tester
+ 
++
+ 
+Superintendent
+ 
+Approval:
+ 
+Score
+ 
+is
+ 
+entered
+ 
+and
+ 
+approved
+ 
+on
+ 
+the
+ 
+Issuer
+ 
+Portal
+ 
+(two-role
+ 
+sign-off).
+ 
+●
+ 
+Stage
+ 
+3
+ 
+—
+ 
+Signed
+ 
+Minting:
+ 
+The
+ 
+approved
+ 
+record
+ 
+is
+ 
+signed
+ 
+client-side
+ 
+in
+ 
+the
+ 
+Center
+ 
+Superintendent's
+ 
+browser
+ 
+using
+ 
+the
+ 
+hub's
+ 
+private
+ 
+key,
+ 
+then
+ 
+submitted
+ 
+to
+ 
+the
+ 
+smart
+ 
+contract,
+ 
+which
+ 
+verifies
+ 
+the
+ 
+signature
+ 
+and
+ 
+mints
+ 
+the
+ 
+credential,
+ 
+anchoring
+ 
+only
+ 
+its
+ 
+SHA-256
+ 
+hash;
+ 
+the
+ 
+full
+ 
+record
+ 
+is
+ 
+simultaneously
+ 
+saved
+ 
+off-chain
+ 
+(name,
+ 
+photo,
+ 
+ID,
+ 
+score).
+ 
+●
+ 
+Stage
+ 
+4
+ 
+—
+ 
+Worker's
+ 
+Mobile
+ 
+Wallet:
+ 
+Wallet
+ 
+renders
+ 
+a
+ 
+scannable
+ 
+QR
+ 
+code
+ 
+and
+ 
+the
+ 
+digital
+ 
+credential
+ 
+for
+ 
+the
+ 
+candidate.
+ 
+●
+ 
+Stage
+ 
+5
+ 
+—
+ 
+Employer
+ 
+Verification:
+ 
+Employer
+ 
+scans
+ 
+the
+ 
+QR;
+ 
+the
+ 
+system
+ 
+matches
+ 
+the
+ 
+off-chain
+ 
+data
+ 
+against
+ 
+the
+ 
+on-chain
+ 
+hash
+ 
+held
+ 
+by
+ 
+the
+ 
+contract
+ 
+and
+ 
+returns
+ 
+a
+ 
+verification
+ 
+result.
+ 
+3.4  Prototype-to-Production  Architecture  Mapping The  prototype  architecture  already  consolidates  the  three  front-ends  behind  a  single  shared  backend  API.  
+Production
+ 
+carries
+ 
+that
+ 
+same
+ 
+modular-monolith
+ 
+shape
+ 
+forward
+ 
+—
+ 
+hardened,
+ 
+schema-separated,
+ 
+and
+ 
+horizontally
+ 
+scaled
+ 
+—
+ 
+rather
+ 
+than
+ 
+being
+ 
+decomposed
+ 
+into
+ 
+independent
+ 
+microservices:
+ 
+Prototype  Component Maps  to  Production  Component Backend  API  (Node.js  +  Express,  plain  JavaScript)  Hardened  modular  monolith  (Node.js  +  Express),  same  single-application  shape,  organized  into  auth  /  candidate  /  ledger  /  verification  modules  behind  API  Gateway  Relational  Database  (PostgreSQL,  off-chain,  stores  PII  and  scores)  
+One  Multi-AZ  AWS  RDS  PostgreSQL  instance,  with  a  dedicated  schema  per  module  (auth,  candidate,  ledger)  Blockchain  Layer  (smart  contract  on  Polygon  Amoy  testnet)  
+Same  proxy  contract  and  multisig-controlled  admin  configuration,  promoted  to  Polygon  mainnet  for  live  issuance  AWS  EC2  /  RDS  /  S3  Containerized  compute  running  horizontally-scaled  instances  of  the  single  application,  Multi-AZ  RDS  PostgreSQL,  S3  for  media  with  pre-signed  URLs   
+4.  Functional  Requirements  —  Backend  Modules 
+Each  module  is  specified  with  its  primary  responsibility,  its  dedicated  PostgreSQL  schema  within  the  shared  
+application
+ 
+database,
+ 
+and
+ 
+its
+ 
+numbered
+ 
+functional
+ 
+requirements
+ 
+(FR-xxx-nn).
+ 
+--- Page 8 ---
+4.1  Auth  &  Identity  Module  (auth  schema) Primary  Responsibility:  User  management,  Multi-Factor  Authentication  (MFA),  role-based  session  token  
+issuance,
+ 
+and
+ 
+testing-hub
+ 
+device
+ 
+authorization.
+ 
+Database  Schema  —  auth  schema  (shared  PostgreSQL  database) Field Type  /  Constraint Notes users.user_id  UUID,  PK,  default  gen_random_uuid()  
+Unique  account  identifier  
+users.email  VARCHAR(255),  UNIQUE,  NOT  NULL  
+Login  identifier  
+users.password_hash  VARCHAR(255),  NOT  NULL  Salted/hashed  credential,  never  stored  in  plaintext  users.role  ENUM(TRADE_TESTER,  CENTER_SUPERINTENDENT,  SUPER_ADMIN)  
+Drives  RBAC  decisions  
+users.hub_location_id  INT,  CHECK  BETWEEN  1  AND  5  Binds  staff  to  one  of  the  5  KP  hubs  users.mfa_secret  VARCHAR(255),  NOT  NULL  TOTP  seed,  encrypted  at  rest  users.is_mfa_active  BOOLEAN,  DEFAULT  TRUE  MFA  cannot  be  disabled  by  end  users  users.created_at  TIMESTAMPTZ,  DEFAULT  now()  Audit  trail  sessions.session_id  UUID,  PK  Unique  session  identifier  sessions.user_id  
+UUID,
+ 
+FK
+ 
+→
+ 
+users,
+ 
+ON
+ 
+DELETE
+ CASCADE  
+Session  owner  
+sessions.refresh_token_hash  VARCHAR(255),  NOT  NULL  Hashed  refresh  token  (never  stored  raw)  sessions.ip_address  VARCHAR(45),  NOT  NULL  Source  IP  for  anomaly  detection  sessions.device_fingerprint  VARCHAR(255),  NOT  NULL  Bound  to  authorized  hub  laptop  sessions.expires_at  TIMESTAMPTZ,  NOT  NULL  Session  expiry  sessions.revoked  BOOLEAN,  DEFAULT  FALSE  Manual/administrative  revocation  flag   
+Functional  Requirements 
+●
+ FR-AUTH-01:  The  system  shall  enforce  dual-factor  authentication  (MFA)  using  TOTP  authenticator  apps  or  
+SMS
+ 
+OTP
+ 
+for
+ 
+every
+ 
+user
+ 
+login,
+ 
+with
+ 
+no
+ 
+opt-out.
+ 
+●
+ FR-AUTH-02:  The  system  shall  issue  RS256-signed  OAuth  2.0  JWT  access  tokens  with  a  15-minute  
+expiration
+ 
+upon
+ 
+successful
+ 
+MFA
+ 
+verification,
+ 
+paired
+ 
+with
+ 
+a
+ 
+rotating
+ 
+refresh
+ 
+token.
+ 
+●
+ FR-AUTH-03:  The  system  shall  restrict  API  access  according  to  three  roles  —  Trade  Tester,  Center  
+Superintendent,
+ 
+and
+ 
+Super
+ 
+Administrator
+ 
+—
+ 
+enforced
+ 
+at
+ 
+the
+ 
+API
+ 
+Gateway
+ 
+and
+ 
+re-validated
+ 
+within
+ 
+each
+ 
+module
+ 
+before
+ 
+executing
+ 
+the
+ 
+request.
+ 
+●
+ FR-AUTH-04:  The  system  shall  validate  device  fingerprints  so  that  authenticated  connections  originate  
+exclusively
+ 
+from
+ 
+the
+ 
+authorized,
+ 
+EDR-secured
+ 
+laptops
+ 
+assigned
+ 
+to
+ 
+the
+ 
+5
+ 
+KP
+ 
+testing
+ 
+points.
+ 
+--- Page 9 ---
+●
+ FR-AUTH-05:  The  system  shall  allow  a  Super  Administrator  to  instantly  revoke  any  active  session  (e.g.,  on  
+device
+ 
+loss/theft),
+ 
+invalidating
+ 
+the
+ 
+associated
+ 
+refresh
+ 
+token.
+ 
+●
+ FR-AUTH-06:  The  system  shall  lock  an  account  after  5  consecutive  failed  login  attempts  and  require  
+administrative
+ 
+or
+ 
+time-delayed
+ 
+self-service
+ 
+unlock.
+ 
+●
+ FR-AUTH-07:  The  system  shall  log  every  authentication  event  (success,  failure,  MFA  challenge,  session  
+revocation)
+ 
+with
+ 
+timestamp,
+ 
+IP,
+ 
+and
+ 
+device
+ 
+fingerprint
+ 
+for
+ 
+audit
+ 
+purposes.
+ 
+●
+ FR-AUTH-08:  The  system  shall  provide  MFA  recovery  through  two  mechanisms:  ten  single-use  backup  
+codes
+ 
+generated
+ 
+and
+ 
+displayed
+ 
+once
+ 
+at
+ 
+MFA
+ 
+enrolment
+ 
+(stored
+ 
+as
+ 
+salted
+ 
+hashes,
+ 
+never
+ 
+in
+ 
+plaintext),
+ 
+and
+ 
+Super
+ 
+Administrator-assisted
+ 
+MFA
+ 
+reset
+ 
+following
+ 
+out-of-band
+ 
+identity
+ 
+verification.
+ 
+Every
+ 
+recovery
+ 
+action
+ 
+shall
+ 
+be
+ 
+recorded
+ 
+in
+ 
+the
+ 
+authentication
+ 
+audit
+ 
+trail
+ 
+per
+ 
+FR-AUTH-07.
+ 
+4.2  Candidate  Assessment  Module  (candidate  schema) Primary  Responsibility:  Candidate  profile  intake,  assessment  record  entry,  PII  anonymization  via  blind  salt  
+hashing,
+ 
+and
+ 
+off-chain
+ 
+media
+ 
+handling.
+ 
+Database  Schema  —  candidate  schema  (shared  PostgreSQL  database) Field Type  /  Constraint Notes candidates.candidate_id  UUID,  PK  Unique  candidate  identifier  candidates.full_name  VARCHAR(255),  NOT  NULL  PII  —  off-chain  only  candidates.father_name  VARCHAR(255),  NOT  NULL  PII  —  off-chain  only  candidates.dob  DATE,  NOT  NULL  Date  of  birth  candidates.cnic_salted_hash  VARCHAR(64),  UNIQUE,  NOT  NULL  
+Salted  hash  of  CNIC  —  public-facing,  non-reversible  reference  candidates.cnic_dedup_hash  VARCHAR(64),  UNIQUE,  NOT  NULL  
+Fixed-key  HMAC  of  CNIC,  used  only  for  duplicate-enrolment  detection  candidates.cnic_blind_salt  VARCHAR(255),  NOT  NULL  Per-candidate  cryptographic  salt,  encrypted  at  rest  candidates.photo_s3_uri  VARCHAR(512),  NOT  NULL  Pointer  to  encrypted  S3  object  candidates.trade_category  VARCHAR(100),  NOT  NULL  e.g.,  Electrician,  Welder,  Plumber  candidates.testing_hub_id  INT,  CHECK  BETWEEN  1  AND  5  Enrolling  hub  candidates.created_at  TIMESTAMPTZ,  DEFAULT  now()  Audit  trail  assessment_records.assessment_id  
+UUID,  PK  Unique  assessment  record  
+assessment_records.candidate_id  
+UUID,
+ 
+FK
+ 
+→
+ 
+candidates,
+ 
+ON
+ DELETE  RESTRICT  
+Owning  candidate  
+assessment_records.score  NUMERIC(5,2),  NOT  NULL  Raw  assessment  score  assessment_records.grade  VARCHAR(10),  NOT  NULL  Derived  pass/fail  or  letter  grade  assessment_records.tester_user_id  
+UUID,  NOT  NULL  Trade  Tester  who  entered  the  score  assessment_records.superintendent_user_id  
+UUID,  NULLABLE  Approving  Center  Superintendent  
+--- Page 10 ---
+assessment_records.status  ENUM(DRAFT,  SUBMITTED,  APPROVED,  REJECTED,  MINTED)  
+Workflow  state  machine  
+assessment_records.rejection_reason  
+TEXT,  NULLABLE  Populated  when  status  =  REJECTED  assessment_records.submitted_at  /  approved_at  
+TIMESTAMPTZ,  NULLABLE  Workflow  timestamps  
+ 
+Functional  Requirements 
+●
+ FR-CAND-01:  The  system  shall  support  candidate  enrolment  for  60  candidates  per  hub  across  the  5  KP  
+testing
+ 
+points
+ 
+(300
+ 
+candidates
+ 
+total).
+ 
+●
+ FR-CAND-02:  The  system  shall  generate  pre-signed  AWS  S3  (TLS  1.3)  upload  URLs  so  candidate  
+photographs
+ 
+are
+ 
+transferred
+ 
+directly
+ 
+and
+ 
+securely
+ 
+to
+ 
+cloud
+ 
+storage
+ 
+without
+ 
+transiting
+ 
+application
+ 
+memory.
+ 
+●
+ FR-CAND-02A:  The  system  shall  verify  each  candidate's  CNIC  against  the  NADRA  verification  service  
+during
+ 
+enrolment,
+ 
+before
+ 
+any
+ 
+assessment
+ 
+score
+ 
+can
+ 
+be
+ 
+recorded
+ 
+against
+ 
+that
+ 
+candidate.
+ 
+Enrolment
+ 
+shall
+ 
+not
+ 
+be
+ 
+finalized
+ 
+without
+ 
+a
+ 
+successful
+ 
+identity
+ 
+match.
+ 
+●
+ FR-CAND-03:  The  system  shall  apply  a  unique,  dynamic  cryptographic  salt  to  each  candidate's  CNIC  
+before
+ 
+computing
+ 
+a
+ 
+one-way
+ 
+hash,
+ 
+isolating
+ 
+the
+ 
+raw
+ 
+CNIC
+ 
+from
+ 
+all
+ 
+downstream
+ 
+services.
+ 
+●
+ FR-CAND-04:  The  system  shall  ingest  encrypted,  browser-cached  assessment  queues  from  the  Issuer  
+Portal
+ 
+(IndexedDB)
+ 
+and
+ 
+synchronize
+ 
+them
+ 
+into
+ 
+the
+ 
+candidate
+ 
+schema
+ 
+automatically
+ 
+once
+ 
+offline
+ 
+client
+ 
+devices
+ 
+regain
+ 
+connectivity.
+ 
+●
+ FR-CAND-05:  The  system  shall  restrict  score-submission  privileges  to  Trade  Testers  and  record  
+review/approval
+ 
+privileges
+ 
+to
+ 
+Center
+ 
+Superintendents,
+ 
+enforced
+ 
+via
+ 
+the
+ 
+assessment_records
+ 
+status
+ 
+state
+ 
+machine.
+ 
+●
+ FR-CAND-06:  The  system  shall  prevent  duplicate  candidate  enrolment  by  checking  the  deterministic  
+cnic_dedup_hash
+ 
+(a
+ 
+fixed-key
+ 
+HMAC
+ 
+of
+ 
+the
+ 
+CNIC)
+ 
+for
+ 
+uniqueness
+ 
+prior
+ 
+to
+ 
+record
+ 
+creation.
+ 
+This
+ 
+is
+ 
+distinct
+ 
+from
+ 
+cnic_salted_hash,
+ 
+which
+ 
+uses
+ 
+a
+ 
+per-candidate
+ 
+random
+ 
+salt
+ 
+and
+ 
+therefore
+ 
+cannot
+ 
+be
+ 
+used
+ 
+for
+ 
+duplicate
+ 
+detection.
+ 
+●
+ FR-CAND-07:  The  system  shall  allow  a  Center  Superintendent  to  reject  a  submitted  record  with  a  
+mandatory,
+ 
+free-text
+ 
+rejection_reason,
+ 
+returning
+ 
+it
+ 
+to
+ 
+DRAFT
+ 
+for
+ 
+correction.
+ 
+●
+ FR-CAND-08:  The  system  shall  emit  an  APPROVED  domain  event  once  a  record  is  approved,  which  the  
+ledger
+ 
+module
+ 
+subscribes
+ 
+to
+ 
+(via
+ 
+the
+ 
+internal
+ 
+event
+ 
+bus)
+ 
+for
+ 
+automatic
+ 
+minting-queue
+ 
+enqueue.
+ 
+4.3  Blockchain  Minting  &  Ledger  Module  (ledger  schema) Primary  Responsibility:  Structuring  W3C  Verifiable  Credentials,  running  SHA-256  hash  operations,  submitting  
+signed
+ 
+mint
+ 
+requests
+ 
+to
+ 
+the
+ 
+Polygon
+ 
+smart
+ 
+contract,
+ 
+and
+ 
+tracking
+ 
+revocation
+ 
+states.
+ 
+Database  Schema  —  ledger  schema  (shared  PostgreSQL  database) Field Type  /  Constraint Notes minting_queue.queue_id  UUID,  PK  Unique  queue  entry  minting_queue.assessment_id  UUID,  UNIQUE,  NOT  NULL  1:1  link  to  the  approved  assessment  record  minting_queue.metadata_payload_hash  
+VARCHAR(64),  NOT  NULL  Pre-broadcast  hash  of  the  credential  payload  
+--- Page 11 ---
+minting_queue.status  ENUM(QUEUED,  BROADCASTED,  CONFIRMED,  FAILED)  
+Transaction  lifecycle  state  
+minting_queue.retry_count  INT,  DEFAULT  0  Automatic  retry  tracking  on  failure  minting_queue.created_at  TIMESTAMPTZ,  DEFAULT  now()  Audit  trail  credentials.credential_id  UUID,  PK  Unique  credential  identifier  credentials.candidate_id  UUID,  UNIQUE,  NOT  NULL  1:1  link  to  candidate  credentials.w3c_vc_json  JSONB,  NOT  NULL  Full  W3C  Verifiable  Credential  document  credentials.sha256_root_hash  VARCHAR(64),  UNIQUE,  NOT  NULL  
+Digest  anchored  via  the  minting  contract  credentials.polygon_tx_hash  VARCHAR(66),  UNIQUE,  NULLABLE  
+On-chain  mint  transaction  hash  
+credentials.contract_address  VARCHAR(42),  NOT  NULL  Address  of  the  proxy  minting  contract  credentials.block_number  BIGINT,  NULLABLE  Confirming  block  credentials.issuer_did  VARCHAR(255),  NOT  NULL  DID  of  the  issuing  hub  credentials.minted_at  TIMESTAMPTZ,  NULLABLE  Confirmation  timestamp  credentials.is_revoked  BOOLEAN,  DEFAULT  FALSE  Revocation  flag  (does  not  delete  history)  credentials.revocation_reason  TEXT,  NULLABLE  Populated  when  is_revoked  =  TRUE   
+Functional  Requirements 
+●
+ FR-LEDG-01:  The  system  shall  compile  approved  assessment  records  into  standardized  W3C  Verifiable  
+Credential
+ 
+and
+ 
+Blockcerts
+ 
+JSON
+ 
+formats.
+ 
+●
+ FR-LEDG-02:  The  system  shall  generate  a  single  SHA-256  hash  digest  from  the  complete  W3C  credential  
+payload
+ 
+for
+ 
+blockchain
+ 
+anchoring.
+ 
+●
+ FR-LEDG-03:  The  system  shall  relay  client-signed  mint  requests  (signed  in  the  Center  Superintendent's  
+browser
+ 
+using
+ 
+the
+ 
+hub's
+ 
+private
+ 
+key)
+ 
+to
+ 
+the
+ 
+smart
+ 
+contract's
+ 
+mint
+ 
+function
+ 
+via
+ 
+ethers.js,
+ 
+drawing
+ 
+gas
+ 
+fees
+ 
+from
+ 
+a
+ 
+single
+ 
+pre-funded
+ 
+gas
+ 
+wallet
+ 
+sized
+ 
+to
+ 
+cover
+ 
+all
+ 
+300
+ 
+planned
+ 
+issuances.
+ 
+The
+ 
+backend
+ 
+never
+ 
+has
+ 
+access
+ 
+to
+ 
+hub
+ 
+private
+ 
+keys
+ 
+—
+ 
+it
+ 
+only
+ 
+relays
+ 
+already-signed
+ 
+data.
+ 
+●
+ FR-LEDG-04:  The  system  shall  store  transaction  receipts,  block  numbers,  contract  addresses,  and  
+transaction
+ 
+hashes
+ 
+in
+ 
+the
+ 
+ledger
+ 
+schema
+ 
+while
+ 
+keeping
+ 
+all
+ 
+raw
+ 
+PII
+ 
+off-chain
+ 
+at
+ 
+all
+ 
+times.
+ 
+●
+ FR-LEDG-05:  The  system  shall  allow  Super  Administrators  to  set  a  credential's  off-chain  revocation  status  
+to
+ 
+“Revoked”
+ 
+(credentials.is_revoked)
+ 
+without
+ 
+altering
+ 
+or
+ 
+deleting
+ 
+the
+ 
+original
+ 
+anchored
+ 
+transaction,
+ 
+hash,
+ 
+or
+ 
+the
+ 
+smart
+ 
+contract's
+ 
+minting
+ 
+record.
+ 
+●
+ FR-LEDG-06:  The  system  shall  retry  failed  mint  transactions  automatically  (bounded  by  retry_count)  and  
+surface
+ 
+persistent
+ 
+failures
+ 
+to
+ 
+Super
+ 
+Administrators
+ 
+for
+ 
+manual
+ 
+intervention.
+ 
+●
+ FR-LEDG-07:  The  system  shall  register  each  testing  hub's  public  key  on  the  ledger  as  a  Decentralized  
+Identifier
+ 
+(DID),
+ 
+with
+ 
+the
+ 
+corresponding
+ 
+private
+ 
+key
+ 
+generated
+ 
+once
+ 
+during
+ 
+hub
+ 
+setup
+ 
+and
+ 
+held
+ 
+exclusively,
+ 
+encrypted,
+ 
+in
+ 
+the
+ 
+Center
+ 
+Superintendent's
+ 
+browser
+ 
+(IndexedDB,
+ 
+protected
+ 
+by
+ 
+a
+ 
+passphrase).
+ 
+The
+ 
+key
+ 
+is
+ 
+activated
+ 
+locally
+ 
+to
+ 
+sign
+ 
+each
+ 
+mint
+ 
+request;
+ 
+it
+ 
+is
+ 
+never
+ 
+transmitted
+ 
+to
+ 
+or
+ 
+stored
+ 
+on
+ 
+the
+ 
+backend.
+ 
+--- Page 12 ---
+●
+ FR-LEDG-08:  The  system  shall  sign  each  credential  using  asymmetric  cryptography  (ECDSA  or  Ed25519)  
+bound
+ 
+to
+ 
+the
+ 
+issuing
+ 
+hub's
+ 
+DID
+ 
+before
+ 
+submitting
+ 
+it
+ 
+for
+ 
+minting.
+ 
+●
+ FR-LEDG-09:  The  smart  contract  shall  verify  the  submitting  hub's  signature  against  that  hub's  registered  
+DID
+ 
+public
+ 
+key
+ 
+before
+ 
+minting
+ 
+a
+ 
+credential,
+ 
+rejecting
+ 
+any
+ 
+mint
+ 
+request
+ 
+that
+ 
+fails
+ 
+signature
+ 
+verification.
+ 
+●
+ FR-LEDG-10:  The  smart  contract's  administrative  (upgrade)  authority  shall  require  multisig  approval  from  
+more
+ 
+than
+ 
+one
+ 
+designated
+ 
+approver
+ 
+—
+ 
+no
+ 
+single
+ 
+individual,
+ 
+including
+ 
+any
+ 
+Super
+ 
+Administrator,
+ 
+may
+ 
+unilaterally
+ 
+alter
+ 
+the
+ 
+contract's
+ 
+logic.
+ 
+4.4  Public  Verification  Module  (verification) Primary  Responsibility:  Providing  free  public  lookup,  fetching  off-chain  metadata,  executing  live  hash  
+reconciliation
+ 
+against
+ 
+the
+ 
+contract's
+ 
+stored
+ 
+record,
+ 
+and
+ 
+returning
+ 
+verification
+ 
+states.
+ 
+Functional  Requirements 
+●
+ FR-VERI-01:  The  system  shall  provide  a  public  verification  interface  that  operates  without  user  
+authentication
+ 
+or
+ 
+login
+ 
+barriers.
+ 
+●
+ FR-VERI-02:  The  system  shall  process  inputs  from  dynamic  camera  QR  scans  or  direct  credential-identifier  
+text
+ 
+queries.
+ 
+●
+ FR-VERI-03:  The  system  shall  fetch  off-chain  metadata,  re-calculate  its  SHA-256  digest  in  real  time,  query  
+the
+ 
+smart
+ 
+contract
+ 
+(via
+ 
+ethers.js)
+ 
+to
+ 
+retrieve
+ 
+the
+ 
+anchored
+ 
+hash
+ 
+for
+ 
+that
+ 
+credential,
+ 
+compare
+ 
+the
+ 
+two
+ 
+values,
+ 
+and
+ 
+check
+ 
+the
+ 
+credential's
+ 
+off-chain
+ 
+revocation
+ 
+flag.
+ 
+●
+ FR-VERI-04:  The  system  shall  output  one  of  three  clear  verification  results:  Valid  (matching  hashes),  
+Tampered
+ 
+(mismatched
+ 
+hashes),
+ 
+or
+ 
+Revoked
+ 
+(flagged
+ 
+status).
+ 
+●
+ FR-VERI-05:  The  system  shall  cache  repeated  verification  lookups  for  a  short,  bounded  TTL  to  keep  
+response
+ 
+times
+ 
+within
+ 
+the
+ 
+2-second
+ 
+performance
+ 
+target.
+ 
+●
+ FR-VERI-06:  The  system  shall  apply  the  same  60-requests-per-minute-per-IP  rate  limit  as  the  rest  of  the  
+platform
+ 
+to
+ 
+deter
+ 
+automated
+ 
+verification
+ 
+abuse.
+ 
+5.  Functional  Requirements  —  Frontend  /  Client  Applications 
+5.1  Issuer  Portal  (React  Web) 
+Functional  Requirements 
+●
+ FR-ISS-01:  The  portal  shall  present  role-specific  (RBAC)  dashboard  views  for  each  of  the  three  user  roles,  
+hiding
+ 
+actions
+ 
+the
+ 
+current
+ 
+role
+ 
+is
+ 
+not
+ 
+authorized
+ 
+to
+ 
+perform.
+ 
+●
+ FR-ISS-02:  The  portal  shall  provide  a  candidate-enrolment  form  capturing  full  name,  father's  name,  DOB,  
+CNIC,
+ 
+trade
+ 
+category,
+ 
+hub
+ 
+assignment,
+ 
+and
+ 
+a
+ 
+photo
+ 
+upload
+ 
+via
+ 
+pre-signed
+ 
+S3
+ 
+URL.
+ 
+●
+ FR-ISS-03:  The  portal  shall  provide  a  score-and-media  entry  screen  restricted  to  the  Trade  Tester  role,  
+saving
+ 
+records
+ 
+in
+ 
+DRAFT
+ 
+status
+ 
+until
+ 
+explicitly
+ 
+submitted.
+ 
+●
+ FR-ISS-04:  The  portal  shall  provide  an  approval  queue  for  Center  Superintendents  listing  all  SUBMITTED  
+records
+ 
+for
+ 
+their
+ 
+hub,
+ 
+with
+ 
+Approve
+ 
+/
+ 
+Reject
+ 
+(with
+ 
+reason)
+ 
+actions;
+ 
+approval
+ 
+triggers
+ 
+local
+ 
+browser-side
+ 
+signing
+ 
+of
+ 
+the
+ 
+mint
+ 
+request.
+ 
+--- Page 13 ---
+●
+ FR-ISS-05:  The  portal  shall  use  browser  IndexedDB  to  encrypt  and  locally  queue  candidate  and  
+assessment
+ 
+records
+ 
+during
+ 
+internet
+ 
+or
+ 
+power
+ 
+outages,
+ 
+auto-syncing
+ 
+with
+ 
+the
+ 
+candidate
+ 
+module
+ 
+the
+ 
+moment
+ 
+connectivity
+ 
+returns.
+ 
+●
+ FR-ISS-06:  The  portal  shall  provide  a  Super  Administrator  monitoring  dashboard  showing  minting-queue  
+health,
+ 
+per-hub
+ 
+enrolment
+ 
+progress
+ 
+(toward
+ 
+60/hub),
+ 
+and
+ 
+session/audit
+ 
+logs.
+ 
+●
+ FR-ISS-07:  The  portal  shall  enforce  MFA  (TOTP  or  SMS  OTP)  at  every  login  and  re-prompt  for  step-up  
+authentication
+ 
+before
+ 
+irreversible
+ 
+actions
+ 
+(credential
+ 
+revocation,
+ 
+user
+ 
+role
+ 
+changes).
+ 
+5.2  Worker  Mobile  Wallet  (React  Native) 
+Functional  Requirements 
+●
+ FR-WAL-01:  The  wallet  shall  render  a  dynamic,  scannable  QR  code  encoding  the  candidate's  credential  
+identifier
+ 
+/
+ 
+DID
+ 
+reference
+ 
+for
+ 
+presentation
+ 
+to
+ 
+employers.
+ 
+●
+ FR-WAL-02:  The  wallet  shall  generate  a  downloadable,  shareable  PDF  version  of  the  credential,  including  
+candidate
+ 
+details,
+ 
+trade
+ 
+category,
+ 
+grade,
+ 
+and
+ 
+QR
+ 
+code.
+ 
+●
+ FR-WAL-03:  The  wallet  shall  encrypt  and  cache  the  credential  payload  on-device  (iOS  Keychain  /  Android  
+EncryptedSharedPreferences)
+ 
+so
+ 
+it
+ 
+can
+ 
+be
+ 
+presented
+ 
+while
+ 
+offline.
+ 
+●
+ FR-WAL-04:  The  wallet  shall  clearly  display  the  credential's  live  status  (Valid  /  Revoked)  whenever  a  
+network
+ 
+connection
+ 
+is
+ 
+available,
+ 
+refreshing
+ 
+from
+ 
+the
+ 
+verification
+ 
+module.
+ 
+●
+ FR-WAL-05:  The  wallet  shall  support  Android  and  iOS  smartphones  with  a  clean,  low-literacy-friendly  
+mobile
+ 
+layout
+ 
+suitable
+ 
+for
+ 
+first-time
+ 
+digital-credential
+ 
+users.
+ 
+5.3  Verifier  DApp  (React  Web) 
+Functional  Requirements 
+●
+ FR-VER-01:  The  DApp  shall  provide  a  camera-based  QR  scanner  as  well  as  a  manual  credential-identifier  
+text-entry
+ 
+field.
+ 
+●
+ FR-VER-02:  The  DApp  shall  display  real-time  hash-reconciliation  results  (Valid  /  Tampered  /  Revoked)  
+returned
+ 
+by
+ 
+the
+ 
+verification
+ 
+module
+ 
+within
+ 
+the
+ 
+2-second
+ 
+performance
+ 
+target.
+ 
+●
+ FR-VER-03:  The  DApp  shall  require  no  registration,  login,  or  payment  at  any  point,  consistent  with  the  
+permanent-free-verification
+ 
+requirement.
+ 
+●
+ FR-VER-04:  The  DApp  shall  present  a  shareable  verification  receipt  (screen  state  or  printable  summary)  
+an
+ 
+employer
+ 
+can
+ 
+retain
+ 
+for
+ 
+their
+ 
+own
+ 
+records.
+ 
+6.  Blockchain  &  Smart-Contract  Layer 
+The  blockchain  layer  is  the  platform's  trust  anchor.  It  never  stores  personal  data;  it  only  stores  cryptographic  
+proof,
+ 
+via
+ 
+smart-contract-enforced
+ 
+minting,
+ 
+that
+ 
+an
+ 
+off-chain
+ 
+record
+ 
+has
+ 
+not
+ 
+been
+ 
+altered
+ 
+since
+ 
+issuance.
+ 
+Functional  Requirements 
+●
+ FR-CHAIN-01:  The  platform  shall  deploy  on  a  Layer-2  sidechain  protocol  (Polygon)  to  minimize  transaction  
+costs
+ 
+while
+ 
+preserving
+ 
+decentralized,
+ 
+publicly
+ 
+verifiable
+ 
+credential
+ 
+infrastructure.
+ 
+●
+ FR-CHAIN-02:  The  platform  shall  structure  every  credential  according  to  the  W3C  Verifiable  Credentials  
+data
+ 
+model
+ 
+to
+ 
+enable
+ 
+cross-border
+ 
+interoperability
+ 
+with
+ 
+international
+ 
+labour-market
+ 
+and
+ 
+migration
+ 
+systems.
+ 
+--- Page 14 ---
+●
+ FR-CHAIN-03:  The  platform  shall  register  each  testing  hub's  public  key  on-chain  as  a  Decentralized  
+Identifier
+ 
+(DID)
+ 
+and
+ 
+require
+ 
+each
+ 
+hub
+ 
+to
+ 
+hold
+ 
+and
+ 
+protect
+ 
+its
+ 
+own
+ 
+private
+ 
+signing
+ 
+key.
+ 
+●
+ FR-CHAIN-04:  The  platform  shall  generate  a  SHA-256  hash  from  processed  credential  metadata  and  
+anchor
+ 
+only
+ 
+that
+ 
+hash
+ 
+via
+ 
+the
+ 
+minting
+ 
+smart
+ 
+contract
+ 
+—
+ 
+raw
+ 
+personal
+ 
+or
+ 
+credential
+ 
+data
+ 
+shall
+ 
+never
+ 
+be
+ 
+written
+ 
+directly
+ 
+to
+ 
+the
+ 
+ledger.
+ 
+●
+ FR-CHAIN-05:  The  platform  shall  combine  a  per-candidate  cryptographic  salt  with  the  CNIC  before  
+hashing
+ 
+(blind-salt
+ 
+mapping),
+ 
+establishing
+ 
+a
+ 
+secure
+ 
+credential-to-identity
+ 
+relationship
+ 
+without
+ 
+exposing
+ 
+the
+ 
+CNIC
+ 
+on
+ 
+the
+ 
+public
+ 
+ledger.
+ 
+●
+ FR-CHAIN-06:  The  platform  shall  keep  transaction  confirmation  times  under  5  seconds  by  executing  all  
+blockchain
+ 
+operations
+ 
+on
+ 
+the
+ 
+Polygon
+ 
+Layer-2
+ 
+network.
+ 
+●
+ FR-CHAIN-07:  The  platform  shall  maintain  a  single  pre-funded  gas  wallet  sized  to  cover  the  full  
+300-credential
+ 
+issuance
+ 
+run,
+ 
+with
+ 
+balance-monitoring
+ 
+alerts
+ 
+to
+ 
+the
+ 
+Super
+ 
+Administrator.
+ 
+●
+ FR-CHAIN-08:  The  platform  shall  deploy  the  minting  contract  using  an  upgradeable  proxy  pattern,  with  
+upgrade
+ 
+authority
+ 
+secured
+ 
+by
+ 
+a
+ 
+multisig
+ 
+requiring
+ 
+approval
+ 
+from
+ 
+more
+ 
+than
+ 
+one
+ 
+designated
+ 
+party.
+ 
+Non-Functional  Notes 
+●
+ 
+Zero
+ 
+vendor
+ 
+lock-in:
+ 
+architecture
+ 
+relies
+ 
+exclusively
+ 
+on
+ 
+open
+ 
+standards
+ 
+(W3C
+ 
+VC,
+ 
+Blockcerts,
+ 
+public
+ 
+L2
+ 
+networks)
+ 
+with
+ 
+no
+ 
+recurring
+ 
+commercial
+ 
+software
+ 
+licensing
+ 
+fee.
+ 
+●
+ 
+The
+ 
+minting
+ 
+smart
+ 
+contract
+ 
+and
+ 
+its
+ 
+proxy-admin/multisig
+ 
+configuration
+ 
+shall
+ 
+undergo
+ 
+an
+ 
+independent
+ 
+security
+ 
+review
+ 
+prior
+ 
+to
+ 
+mainnet
+ 
+deployment,
+ 
+given
+ 
+the
+ 
+irreversible
+ 
+nature
+ 
+of
+ 
+on-chain
+ 
+writes
+ 
+and
+ 
+the
+ 
+additional
+ 
+risk
+ 
+an
+ 
+upgradeable
+ 
+contract
+ 
+carries
+ 
+if
+ 
+its
+ 
+admin
+ 
+key
+ 
+were
+ 
+compromised.
+ 
+7.  Cloud  Infrastructure  &  DevOps  Module 
+The  application,  database,  and  object  storage  are  hosted  within  an  isolated  AWS  Virtual  Private  Cloud,  fronted  
+by
+ 
+a
+ 
+Web
+ 
+Application
+ 
+Firewall
+ 
+and
+ 
+secured
+ 
+according
+ 
+to
+ 
+the
+ 
+platform's
+ 
+zero-trust
+ 
+network
+ 
+posture.
+ 
+Functional  /  Infrastructure  Requirements 
+●
+ FR-INF-01:  The  platform  shall  run  application  and  database  layers  inside  isolated  subnets  within  an  AWS  
+VPC,
+ 
+protected
+ 
+by
+ 
+Network
+ 
+Access
+ 
+Control
+ 
+Lists
+ 
+(NACLs)
+ 
+and
+ 
+an
+ 
+AWS
+ 
+WAF.
+ 
+●
+ FR-INF-02:  The  platform  shall  front  all  inbound  traffic  through  AWS  API  Gateway  with  Route  53  DNS  
+resolution,
+ 
+enforcing
+ 
+OAuth
+ 
+2.0
+ 
+and
+ 
+TLS
+ 
+1.3
+ 
+on
+ 
+every
+ 
+request.
+ 
+●
+ FR-INF-03:  The  platform  shall  run  relational  databases  on  Multi-AZ  AWS  RDS  PostgreSQL  with  automated  
+failover
+ 
+and
+ 
+scheduled
+ 
+backups.
+ 
+●
+ FR-INF-04:  The  platform  shall  store  candidate  photographs  and  generated  PDFs  in  AWS  S3  using  
+server-side
+ 
+AES-256
+ 
+encryption
+ 
+and
+ 
+pre-signed,
+ 
+time-limited
+ 
+access
+ 
+URLs.
+ 
+●
+ FR-INF-05:  The  platform  shall  provision  and  secure  five  field  laptops  (Dell/HP  or  equivalent  
+commercial-grade)
+ 
+with
+ 
+centrally
+ 
+managed
+ 
+EDR
+ 
+software
+ 
+and
+ 
+disabled
+ 
+USB
+ 
+storage
+ 
+ports.
+ 
+●
+ FR-INF-06:  The  platform  shall  provision  five  dedicated  enterprise  4G  data  connections,  one  per  testing  
+hub,
+ 
+with
+ 
+monthly
+ 
+data
+ 
+provisioning
+ 
+managed
+ 
+centrally
+ 
+through
+ 
+the
+ 
+24-month
+ 
+operational
+ 
+period.
+ 
+●
+ FR-INF-07:  The  platform  shall  maintain  custom  domain  ownership/renewal  (including  national  domains  
+such
+ 
+as
+ 
+.pk
+ 
+/
+ 
+.gov.pk
+ 
+where
+ 
+applicable)
+ 
+and
+ 
+high-grade
+ 
+SSL
+ 
+certificates
+ 
+through
+ 
+Year
+ 
+2.
+ 
+●
+ FR-INF-08:  The  platform  shall  support  remote  monitoring  and  support  tooling  so  the  Super  Administrator  
+can
+ 
+track
+ 
+hub
+ 
+device
+ 
+health
+ 
+and
+ 
+connectivity
+ 
+status
+ 
+centrally.
+ 
+--- Page 15 ---
+8.  Database  Design  Summary  (Consolidated  Data  Model) 
+The  platform  uses  a  single  shared  PostgreSQL  database,  with  each  module  owning  its  own  schema  (auth,  
+candidate,
+ 
+ledger)
+ 
+—
+ 
+a
+ 
+schema-per-module
+ 
+pattern
+ 
+within
+ 
+one
+ 
+physical
+ 
+database.
+ 
+Cross-module
+ 
+references
+ 
+(e.g.,
+ 
+candidate_id
+ 
+inside
+ 
+the
+ 
+ledger
+ 
+schema)
+ 
+are
+ 
+resolved
+ 
+through
+ 
+each
+ 
+module's
+ 
+internal
+ 
+interface.
+ 
+The
+ 
+database
+ 
+may
+ 
+still
+ 
+enforce
+ 
+cross-schema
+ 
+foreign
+ 
+keys
+ 
+for
+ 
+referential
+ 
+integrity,
+ 
+since
+ 
+all
+ 
+schemas
+ 
+live
+ 
+in
+ 
+the
+ 
+same
+ 
+physical
+ 
+database.
+ 
+Schema Owning  Module Core  Entities auth  Auth  &  Identity  users,  sessions  candidate  Candidate  Assessment  candidates,  assessment_records  ledger  Blockchain  Minting  &  Ledger  minting_queue,  credentials  AWS  S3  (external)  Candidate  Assessment  /  Ledger  candidate  photographs,  generated  credential  PDFs   
+Record
+ 
+Lifecycle
+ 
+(assessment_records.status):
+ 
+DRAFT
+ 
+→
+ 
+SUBMITTED
+ 
+→
+ 
+APPROVED
+ 
+/
+ 
+REJECTED
+ 
+→
+ 
+MINTED.
+ 
+A
+ 
+REJECTED
+ 
+record
+ 
+returns
+ 
+to
+ 
+DRAFT
+ 
+for
+ 
+correction.
+ 
+An
+ 
+APPROVED
+ 
+record
+ 
+automatically
+ 
+triggers
+ 
+an
+ 
+entry
+ 
+in
+ 
+minting_queue
+ 
+(ledger
+ 
+schema),
+ 
+which
+ 
+transitions
+ 
+QUEUED
+ 
+→
+ 
+BROADCASTED
+ 
+→
+ 
+CONFIRMED
+ 
+(or
+ 
+FAILED,
+ 
+with
+ 
+bounded
+ 
+retry).
+ 
+9.  Non-Functional  Requirements 
+9.1  Security,  Cryptography  &  Privacy 
+●
+ 
+NFR-SEC-01:
+ 
+All
+ 
+data
+ 
+in
+ 
+transit
+ 
+shall
+ 
+be
+ 
+encrypted
+ 
+using
+ 
+TLS
+ 
+1.3;
+ 
+all
+ 
+data
+ 
+at
+ 
+rest
+ 
+shall
+ 
+be
+ 
+encrypted
+ 
+using
+ 
+AES-256,
+ 
+across
+ 
+databases,
+ 
+S3
+ 
+buckets,
+ 
+and
+ 
+client-side
+ 
+caches.
+ 
+●
+ 
+NFR-SEC-02:
+ 
+Key
+ 
+signing
+ 
+shall
+ 
+use
+ 
+asymmetric
+ 
+cryptography
+ 
+(ECDSA
+ 
+or
+ 
+Ed25519);
+ 
+public
+ 
+key
+ 
+identities
+ 
+shall
+ 
+be
+ 
+managed
+ 
+through
+ 
+Decentralized
+ 
+Identifiers
+ 
+(DIDs).
+ 
+●
+ 
+NFR-SEC-03:
+ 
+The
+ 
+system
+ 
+shall
+ 
+enforce
+ 
+a
+ 
+zero-PII
+ 
+ledger
+ 
+policy:
+ 
+names,
+ 
+CNIC,
+ 
+and
+ 
+photographs
+ 
+remain
+ 
+exclusively
+ 
+in
+ 
+off-chain
+ 
+databases;
+ 
+only
+ 
+SHA-256
+ 
+digests
+ 
+are
+ 
+anchored
+ 
+via
+ 
+the
+ 
+minting
+ 
+contract.
+ 
+●
+ 
+NFR-SEC-04:
+ 
+All
+ 
+five
+ 
+hub
+ 
+laptops
+ 
+shall
+ 
+run
+ 
+centrally
+ 
+managed
+ 
+EDR
+ 
+software
+ 
+with
+ 
+USB
+ 
+storage
+ 
+ports
+ 
+blocked.
+ 
+●
+ 
+NFR-SEC-05:
+ 
+Backend
+ 
+communication
+ 
+shall
+ 
+occur
+ 
+exclusively
+ 
+over
+ 
+secure
+ 
+REST
+ 
+APIs
+ 
+using
+ 
+OAuth
+ 
+2.0
+ 
+tokenization.
+ 
+●
+ 
+NFR-SEC-06:
+ 
+The
+ 
+minting
+ 
+smart
+ 
+contract
+ 
+and
+ 
+its
+ 
+multisig
+ 
+admin
+ 
+configuration
+ 
+shall
+ 
+undergo
+ 
+an
+ 
+independent
+ 
+security
+ 
+review
+ 
+prior
+ 
+to
+ 
+mainnet
+ 
+deployment.
+ 
+9.2  Performance,  Throughput  &  Rate  Limiting 
+●
+ 
+NFR-PER-01:
+ 
+Public
+ 
+credential
+ 
+lookups
+ 
+on
+ 
+the
+ 
+Verifier
+ 
+DApp
+ 
+shall
+ 
+complete
+ 
+and
+ 
+display
+ 
+results
+ 
+within
+ 
+2.0
+ 
+seconds
+ 
+under
+ 
+normal
+ 
+operating
+ 
+conditions.
+ 
+●
+ 
+NFR-PER-02:
+ 
+The
+ 
+API
+ 
+Gateway
+ 
+shall
+ 
+enforce
+ 
+rate
+ 
+limits
+ 
+capped
+ 
+at
+ 
+60
+ 
+requests
+ 
+per
+ 
+minute
+ 
+per
+ 
+IP
+ 
+address
+ 
+to
+ 
+defend
+ 
+against
+ 
+DDoS
+ 
+attacks
+ 
+and
+ 
+automated
+ 
+abuse.
+ 
+●
+ 
+NFR-PER-03:
+ 
+Blockchain
+ 
+operations
+ 
+shall
+ 
+execute
+ 
+on
+ 
+the
+ 
+Polygon
+ 
+Layer-2
+ 
+network
+ 
+to
+ 
+keep
+ 
+transaction
+ 
+confirmation
+ 
+times
+ 
+under
+ 
+5
+ 
+seconds.
+ 
+--- Page 16 ---
+9.3  Infrastructure,  Availability  &  Resilience 
+●
+ 
+NFR-INF-01:
+ 
+The
+ 
+application
+ 
+shall
+ 
+run
+ 
+in
+ 
+isolated
+ 
+AWS
+ 
+VPC
+ 
+subnets,
+ 
+protected
+ 
+by
+ 
+NACLs
+ 
+and
+ 
+an
+ 
+AWS
+ 
+WAF.
+ 
+●
+ 
+NFR-INF-02:
+ 
+RDS
+ 
+PostgreSQL
+ 
+instances
+ 
+shall
+ 
+run
+ 
+multi-node
+ 
+failover
+ 
+configurations
+ 
+with
+ 
+automated
+ 
+backup
+ 
+routines.
+ 
+●
+ 
+NFR-INF-03:
+ 
+The
+ 
+system
+ 
+shall
+ 
+maintain
+ 
+operational
+ 
+availability
+ 
+across
+ 
+a
+ 
+24-month
+ 
+horizon.
+ 
+●
+ 
+NFR-INF-04:
+ 
+Field
+ 
+applications
+ 
+shall
+ 
+implement
+ 
+a
+ 
+secure,
+ 
+encrypted
+ 
+browser-side
+ 
+(or
+ 
+on-device)
+ 
+offline
+ 
+queue
+ 
+that
+ 
+automatically
+ 
+synchronizes
+ 
+once
+ 
+stable
+ 
+connectivity
+ 
+returns.
+ 
+9.4  Standards  Compliance,  Licensing  &  SLA 
+●
+ 
+NFR-SLA-01:
+ 
+The
+ 
+architecture
+ 
+shall
+ 
+use
+ 
+open
+ 
+standards
+ 
+(W3C
+ 
+Verifiable
+ 
+Credentials,
+ 
+Blockcerts)
+ 
+to
+ 
+eliminate
+ 
+vendor
+ 
+lock-in
+ 
+and
+ 
+avoid
+ 
+recurring
+ 
+commercial
+ 
+license
+ 
+fees.
+ 
+●
+ 
+NFR-SLA-02:
+ 
+Verifier
+ 
+DApp
+ 
+features
+ 
+shall
+ 
+remain
+ 
+permanently
+ 
+free
+ 
+for
+ 
+external
+ 
+employers
+ 
+and
+ 
+international
+ 
+verification
+ 
+agencies.
+ 
+●
+ 
+NFR-SLA-03:
+ 
+The
+ 
+platform
+ 
+shall
+ 
+undergo
+ 
+a
+ 
+digital-law
+ 
+and
+ 
+data-protection
+ 
+compliance
+ 
+audit
+ 
+during
+ 
+Year
+ 
+2.
+ 
+●
+ 
+NFR-SLA-04:
+ 
+Delivery
+ 
+scope
+ 
+shall
+ 
+include
+ 
+a
+ 
+6-month
+ 
+extended
+ 
+code
+ 
+warranty
+ 
+followed
+ 
+by
+ 
+an
+ 
+18-month
+ 
+paid
+ 
+SLA.
+ 
+9.5  Usability  (UI/UX) 
+●
+ 
+NFR-UX-01:
+ 
+The
+ 
+Issuer
+ 
+Portal
+ 
+shall
+ 
+present
+ 
+role-scoped
+ 
+navigation
+ 
+so
+ 
+each
+ 
+user
+ 
+only
+ 
+sees
+ 
+screens
+ 
+relevant
+ 
+to
+ 
+their
+ 
+responsibilities.
+ 
+●
+ 
+NFR-UX-02:
+ 
+The
+ 
+Worker
+ 
+Mobile
+ 
+Wallet
+ 
+shall
+ 
+use
+ 
+a
+ 
+clean,
+ 
+low-literacy-friendly
+ 
+layout
+ 
+suitable
+ 
+for
+ 
+first-time
+ 
+users.
+ 
+●
+ 
+NFR-UX-03:
+ 
+The
+ 
+Verifier
+ 
+DApp
+ 
+shall
+ 
+be
+ 
+usable
+ 
+on
+ 
+both
+ 
+desktop
+ 
+and
+ 
+mobile
+ 
+browsers
+ 
+without
+ 
+installation.
+ 
+●
+ 
+NFR-UX-04:
+ 
+All
+ 
+UI/UX
+ 
+design
+ 
+work
+ 
+shall
+ 
+go
+ 
+through
+ 
+an
+ 
+initial
+ 
+wireframe
+ 
+review
+ 
+and
+ 
+remain
+ 
+open
+ 
+to
+ 
+unlimited
+ 
+revisions
+ 
+during
+ 
+the
+ 
+design
+ 
+phase.
+ 
+9.6  Maintainability 
+●
+ 
+NFR-MNT-01:
+ 
+The
+ 
+application
+ 
+shall
+ 
+be
+ 
+deployable
+ 
+as
+ 
+a
+ 
+single
+ 
+versioned
+ 
+unit
+ 
+via
+ 
+one
+ 
+CI/CD
+ 
+pipeline,
+ 
+with
+ 
+each
+ 
+internal
+ 
+module
+ 
+maintaining
+ 
+a
+ 
+clearly
+ 
+versioned
+ 
+interface.
+ 
+●
+ 
+NFR-MNT-02:
+ 
+All
+ 
+authentication,
+ 
+approval,
+ 
+minting,
+ 
+and
+ 
+revocation
+ 
+events
+ 
+shall
+ 
+be
+ 
+logged
+ 
+in
+ 
+an
+ 
+immutable
+ 
+audit
+ 
+trail.
+ 
+10.  External  Interface  Requirements 
+10.1  User  Interfaces 
+●
+ 
+Issuer
+ 
+Portal:
+ 
+responsive
+ 
+React
+ 
+web
+ 
+application,
+ 
+desktop-first,
+ 
+MFA
+ 
+login
+ 
+screen,
+ 
+role-based
+ 
+dashboards,
+ 
+approval
+ 
+queues
+ 
+●
+ 
+Worker
+ 
+Mobile
+ 
+Wallet:
+ 
+React
+ 
+Native
+ 
+app
+ 
+(Android
+ 
+&
+ 
+iOS),
+ 
+QR
+ 
+display
+ 
+screen,
+ 
+credential
+ 
+detail
+ 
+view,
+ 
+PDF
+ 
+export/share
+ 
+sheet
+ 
+●
+ 
+Verifier
+ 
+DApp:
+ 
+public
+ 
+React
+ 
+web
+ 
+application,
+ 
+single-purpose
+ 
+scan/search-and-verify
+ 
+interface,
+ 
+no
+ 
+account
+ 
+creation
+ 
+--- Page 17 ---
+10.2  Hardware  Interfaces 
+●
+ 
+5
+ 
+x
+ 
+commercial-grade
+ 
+laptops
+ 
+(Dell/HP
+ 
+or
+ 
+equivalent)
+ 
+at
+ 
+the
+ 
+5
+ 
+KP
+ 
+testing
+ 
+hubs,
+ 
+running
+ 
+the
+ 
+Issuer
+ 
+Portal
+ 
+●
+ 
+5
+ 
+x
+ 
+dedicated
+ 
+enterprise
+ 
+4G
+ 
+modem/router
+ 
+connections,
+ 
+one
+ 
+per
+ 
+hub
+ 
+●
+ 
+Candidate
+ 
+smartphones
+ 
+(Android/iOS)
+ 
+for
+ 
+the
+ 
+Worker
+ 
+Mobile
+ 
+Wallet
+ 
+and
+ 
+QR
+ 
+presentation
+ 
+●
+ 
+Employer
+ 
+smartphones/webcams
+ 
+for
+ 
+QR
+ 
+scanning
+ 
+within
+ 
+the
+ 
+Verifier
+ 
+DApp
+ 
+10.3  Software  Interfaces 
+●
+ 
+Polygon
+ 
+Layer-2
+ 
+RPC
+ 
+endpoint
+ 
+and
+ 
+minting-contract
+ 
+ABI,
+ 
+accessed
+ 
+via
+ 
+ethers.js
+ 
+from
+ 
+the
+ 
+ledger
+ 
+and
+ 
+verification
+ 
+modules
+ 
+●
+ 
+AWS
+ 
+services:
+ 
+API
+ 
+Gateway,
+ 
+WAF,
+ 
+EC2/containers,
+ 
+RDS
+ 
+(PostgreSQL),
+ 
+S3,
+ 
+Route
+ 
+53,
+ 
+ElastiCache
+ 
+(Redis)
+ 
+●
+ 
+TOTP
+ 
+authenticator
+ 
+apps
+ 
+(e.g.,
+ 
+Google
+ 
+Authenticator)
+ 
+and
+ 
+SMS
+ 
+OTP
+ 
+gateway
+ 
+for
+ 
+MFA
+ 
+●
+ 
+NADRA
+ 
+CNIC
+ 
+verification
+ 
+API
+ 
+10.4  Communication  Interfaces 
+●
+ 
+REST/JSON
+ 
+APIs
+ 
+over
+ 
+HTTPS
+ 
+(TLS
+ 
+1.3)
+ 
+between
+ 
+all
+ 
+client
+ 
+applications
+ 
+and
+ 
+the
+ 
+API
+ 
+Gateway
+ 
+●
+ 
+OAuth
+ 
+2.0
+ 
+bearer-token
+ 
+authorization
+ 
+on
+ 
+every
+ 
+authenticated
+ 
+request
+ 
+●
+ 
+Domain
+ 
+events
+ 
+between
+ 
+the
+ 
+candidate
+ 
+and
+ 
+ledger
+ 
+modules
+ 
+(APPROVED
+ 
+record
+ 
+→
+ 
+minting-queue
+ 
+enqueue),
+ 
+dispatched
+ 
+via
+ 
+an
+ 
+in-process
+ 
+internal
+ 
+event
+ 
+bus
+ 
+11.  Implementation  Roadmap  &  Milestones 
+The  engagement  spans  a  3-month  build-and-pilot  phase  followed  by  a  21-month  operational  phase  
+(24-month
+ 
+total
+ 
+horizon).
+ 
+Phase Timing Key  Activities Month  1  —  Design  &  Core  Engineering  
+Weeks  1–4  Kick-off;  SRS  finalization;  UI/UX  wireframes  and  approval;  smart-contract  development  and  deployment  (proxy  pattern,  multisig  admin);  secure  blockchain  framework;  AWS  environment  setup;  hardware  procurement  Month  2  —  Operational  Onboarding  &  Site  Readiness  
+Weeks  5–8  Formal  onboarding  of  the  5  testing  hubs;  2-day  personnel  training  summit;  on-site  hardware  deployment;  4G  connectivity  rollout;  independent  smart-contract  security  review;  full  system  stress  testing;  end-to-end  beta  issuance  simulations  Month  3  —  Live  Pilot  Execution  &  Warranty  Activation  
+Weeks  9–12  Enrolment  of  60  candidates  per  hub  (300  total);  practical  skills  assessments;  live  minting  event  issuing  300  production  NSPs;  live  
+--- Page 18 ---
+verification  demonstrations  to  international  employers;  project  closeout;  6-month  warranty  activation  Months  4–24  —  Maintenance  &  Long-Term  Operations  
+Ongoing  Continuous  cloud  hosting  and  verification-portal  operation;  monthly  hub  data  provisioning;  18-month  paid  SLA  (from  Month  7);  Year-2  compliance  audit  and  refresher  training  clinic   
+The  independent  smart-contract  security  review  is  scheduled  in  Month  2,  in  parallel  with  hardware  
+onboarding,
+ 
+so
+ 
+it
+ 
+does
+ 
+not
+ 
+extend
+ 
+the
+ 
+3-month
+ 
+build
+ 
+window.
+ 
+If
+ 
+the
+ 
+review
+ 
+surfaces
+ 
+required
+ 
+changes,
+ 
+this
+ 
+is
+ 
+a
+ 
+schedule
+ 
+risk
+ 
+to
+ 
+flag
+ 
+ahead
+ 
+of
+ 
+the
+ 
+Month
+ 
+3
+ 
+live
+ 
+minting
+ 
+event. 
+12.  Risk  Register  &  Mitigation  Matrix 
+Risk Impact Mitigation Connectivity  drops  —  power/internet  outages  at  remote  hubs  interrupting  blockchain  sync  
+Assessment  data  cannot  reach  the  backend  in  real  time  
+Secure  browser-side/on-device  queue  caching:  data  is  encrypted,  cached  while  offline,  and  automatically  synchronized  once  stable  connectivity  returns  Data  sovereignty  &  privacy  —  public  blockchain  storage  of  national  ID  data  would  raise  regulatory  concerns  
+Non-compliance  with  national  privacy  expectations;  loss  of  public  trust  
+Zero-PII  blockchain  policy;  only  encrypted/anonymous  SHA-256  hashes  on-chain;  identity  validated  via  NADRA  CNIC  references  in  isolated  off-chain  databases  Proxy-admin  key  compromise  or  misuse  —  an  upgradeable  contract's  logic  could  be  altered  post-deployment  if  its  admin  key  is  compromised  or  misused  by  a  single  party  
+Loss  of  trust  in  credential  integrity;  potential  for  undetected  changes  to  minting/verification  logic  
+Admin  (upgrade)  authority  secured  by  multisig  requiring  approval  from  more  than  one  designated  party;  independent  security  review  of  the  contract  and  its  admin  configuration  prior  to  mainnet  deployment  Hardware  wear  &  power  instability  in  remote  areas  
+Battery/laptop  degradation,  device  downtime  at  hubs  
+Budget  provision  for  replacement  batteries,  power  packs,  and  related  hardware  maintenance  across  the  24-month  horizon  Currency/inflation  exposure  over  a  24-month  engagement  
+Cost  overrun  on  USD-denominated  cloud/blockchain  expenses  
+Contingency  buffer  against  PKR/USD  fluctuation  and  local  inflation,  budgeted  at  the  USD  1  =  PKR  278  baseline  Staff  turnover  at  rotating  regional  testing  hubs  
+Loss  of  operational  knowledge;  re-training  overhead  
+Pre-recorded  video  training  modules;  at  least  one  remote  
+--- Page 19 ---
+refresher  training  clinic  during  Year  2  Gas-wallet  depletion  during  the  live  minting  run  
+Credential  issuance  transactions  stall  mid-pilot  
+Pre-funded  gas  wallet  sized  for  all  300  planned  issuances,  with  balance-monitoring  alerts  to  the  Super  Administrator   
+13.  Acceptance  Criteria  &  Success  Metrics 
+●
+ 
+300
+ 
+live,
+ 
+production-ready
+ 
+blockchain-minted
+ 
+National
+ 
+Skills
+ 
+Passports
+ 
+issued
+ 
+and
+ 
+permanently
+ 
+publicly
+ 
+verifiable
+ 
+●
+ 
+60
+ 
+candidates
+ 
+successfully
+ 
+enrolled
+ 
+and
+ 
+assessed
+ 
+at
+ 
+each
+ 
+of
+ 
+the
+ 
+5
+ 
+KP
+ 
+testing
+ 
+hubs
+ 
+●
+ 
+100%
+ 
+of
+ 
+minted
+ 
+credentials
+ 
+verifiable
+ 
+end-to-end
+ 
+via
+ 
+the
+ 
+Verifier
+ 
+DApp
+ 
+with
+ 
+results
+ 
+returned
+ 
+within
+ 
+2.0
+ 
+seconds
+ 
+●
+ 
+Zero
+ 
+instances
+ 
+of
+ 
+raw
+ 
+PII
+ 
+(name,
+ 
+CNIC,
+ 
+photograph)
+ 
+detected
+ 
+on-chain
+ 
+during
+ 
+security
+ 
+review
+ 
+●
+ 
+Independent
+ 
+smart-contract
+ 
+security
+ 
+review
+ 
+completed
+ 
+with
+ 
+no
+ 
+unresolved
+ 
+critical/high-severity
+ 
+findings
+ 
+prior
+ 
+to
+ 
+mainnet
+ 
+deployment
+ 
+●
+ 
+MFA
+ 
+enforced
+ 
+on
+ 
+100%
+ 
+of
+ 
+Issuer
+ 
+Portal
+ 
+logins
+ 
+across
+ 
+all
+ 
+5
+ 
+hubs
+ 
+●
+ 
+Offline-entered
+ 
+records
+ 
+successfully
+ 
+auto-synchronized
+ 
+with
+ 
+zero
+ 
+data
+ 
+loss
+ 
+during
+ 
+simulated
+ 
+connectivity
+ 
+outages
+ 
+●
+ 
+6-month
+ 
+warranty
+ 
+and
+ 
+18-month
+ 
+SLA
+ 
+operational
+ 
+without
+ 
+unresolved
+ 
+critical/high-severity
+ 
+defects
+ 
+at
+ 
+handover
+ 
+●
+ 
+Live
+ 
+verification
+ 
+successfully
+ 
+demonstrated
+ 
+to
+ 
+international
+ 
+employers/agencies
+ 
+during
+ 
+project
+ 
+closeout
+ 
+14.  Glossary  of  Terms 
+Term Meaning Blind  Salt  Mapping  Combining  a  per-record  cryptographic  salt  with  a  CNIC  before  hashing,  so  the  same  CNIC  never  produces  the  same  hash  twice  and  cannot  be  reverse-engineered  from  the  ledger  Credential  Anchoring  Writing  a  SHA-256  hash  of  a  credential's  contents  into  the  blockchain,  via  the  minting  smart  contract,  so  any  later  tampering  with  the  off-chain  copy  is  detectable  Modular  Monolith  A  single  deployable  application  internally  organized  into  independent  domain  modules,  each  with  its  own  schema  and  interface,  communicating  via  in-process  calls  and  an  internal  event  bus  rather  than  network  calls  between  separate  services  Proxy  Contract  An  upgradeable  smart-contract  pattern  where  a  fixed  address  delegates  its  logic  to  a  replaceable  implementation  contract,  controlled  by  a  separate  admin  authority  
+--- Page 20 ---
+Multisig  Multi-signature  authorization  —  an  action  requires  approval  from  more  than  one  designated  party,  so  no  single  individual  can  act  alone  Gas  Wallet  A  blockchain  wallet  pre-funded  with  network  currency  (MATIC/POL)  used  to  pay  transaction  fees  for  minting  credentials  Off-Chain  Storage  Conventional  encrypted  database/object  storage  (PostgreSQL,  S3)  holding  data  that  is  never  written  to  the  blockchain  Verifiable  Credential  (VC)  A  W3C-standardized,  cryptographically  signed  digital  claim  that  can  be  independently  verified  without  contacting  the  original  issuer   
+—  End  of  Document  — 
