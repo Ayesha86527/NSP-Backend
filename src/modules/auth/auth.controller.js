@@ -1,10 +1,8 @@
-
 const authService = require('./auth.service');
 
 // ======================================================
 // LOGIN
 // ======================================================
-
 const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
@@ -33,9 +31,8 @@ const login = async (req, res, next) => {
 };
 
 // ======================================================
-// VERIFY MFA
+// VERIFY MFA DURING LOGIN
 // ======================================================
-
 const verifyMfa = async (req, res, next) => {
     try {
         const { email, mfaCode } = req.body;
@@ -64,9 +61,78 @@ const verifyMfa = async (req, res, next) => {
 };
 
 // ======================================================
+// START MFA ENROLLMENT
+// Requires a dedicated MFA-enrollment authorization
+// middleware, NOT ordinary authenticate middleware.
+// ======================================================
+const startMfaEnrollment = async (req, res, next) => {
+    try {
+        const userId = req.user?.userId || req.user?.id;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Enrollment authorization is required'
+            });
+        }
+
+        const result = await authService.startMfaEnrollment(
+            userId,
+            req.ip
+        );
+
+        if (!result.success) {
+            return res.status(409).json(result);
+        }
+
+        return res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ======================================================
+// CONFIRM MFA ENROLLMENT
+// Requires the same dedicated enrollment middleware.
+// ======================================================
+const confirmMfaEnrollment = async (req, res, next) => {
+    try {
+        const userId = req.user?.userId || req.user?.id;
+        const { mfaCode } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Enrollment authorization is required'
+            });
+        }
+
+        if (!mfaCode || !/^\d{6}$/.test(String(mfaCode))) {
+            return res.status(400).json({
+                success: false,
+                message: 'A valid six-digit MFA code is required'
+            });
+        }
+
+        const result = await authService.confirmMfaEnrollment(
+            userId,
+            String(mfaCode),
+            req.ip
+        );
+
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+
+        return res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ======================================================
 // REFRESH ACCESS TOKEN
 // ======================================================
-
 const refresh = async (req, res, next) => {
     try {
         const { refreshToken } = req.body;
@@ -96,7 +162,6 @@ const refresh = async (req, res, next) => {
 // ======================================================
 // REVOKE SESSION
 // ======================================================
-
 const revokeSession = async (req, res, next) => {
     try {
         const { refreshToken } = req.body;
@@ -125,13 +190,20 @@ const revokeSession = async (req, res, next) => {
 
 // ======================================================
 // GENERATE BACKUP CODES
+// Requires ordinary authenticated access.
 // ======================================================
-
 const generateBackupCodes = async (req, res, next) => {
     try {
-        const result = await authService.generateBackupCodes(
-            req.user.id
-        );
+        const userId = req.user?.userId || req.user?.id;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication is required'
+            });
+        }
+
+        const result = await authService.generateBackupCodes(userId);
 
         if (!result.success) {
             return res.status(409).json(result);
@@ -145,10 +217,8 @@ const generateBackupCodes = async (req, res, next) => {
 };
 
 // ======================================================
-// VERIFY BACKUP CODE
-// Requires email, password, and backupCode.
+// VERIFY BACKUP CODE DURING LOGIN
 // ======================================================
-
 const verifyBackupCode = async (req, res, next) => {
     try {
         const { email, password, backupCode } = req.body;
@@ -156,8 +226,7 @@ const verifyBackupCode = async (req, res, next) => {
         if (!email || !password || !backupCode) {
             return res.status(400).json({
                 success: false,
-                message:
-                    'Email, password, and backup code are required'
+                message: 'Email, password, and backup code are required'
             });
         }
 
@@ -180,14 +249,20 @@ const verifyBackupCode = async (req, res, next) => {
 
 // ======================================================
 // BACKUP-CODE STATUS
+// Requires ordinary authenticated access.
 // ======================================================
-
 const backupCodeStatus = async (req, res, next) => {
     try {
-        const result =
-            await authService.getUserBackupCodeStatus(
-                req.user.id
-            );
+        const userId = req.user?.userId || req.user?.id;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication is required'
+            });
+        }
+
+        const result = await authService.getUserBackupCodeStatus(userId);
 
         return res.status(200).json(result);
     } catch (error) {
@@ -198,10 +273,11 @@ const backupCodeStatus = async (req, res, next) => {
 // ======================================================
 // EXPORT CONTROLLERS
 // ======================================================
-
 module.exports = {
     login,
     verifyMfa,
+    startMfaEnrollment,
+    confirmMfaEnrollment,
     refresh,
     revokeSession,
     generateBackupCodes,

@@ -1,0 +1,444 @@
+const model = require('./superAdmin.model');
+const { createAuditLog } = require('../auth/audit.model');
+
+const ALLOWED_ROLES = [
+  'SUPER_ADMIN',
+  'CENTER_SUPERINTENDENT',
+  'TRADE_TESTER'
+];
+
+const MANAGED_ROLES = [
+  'CENTER_SUPERINTENDENT',
+  'TRADE_TESTER'
+];
+
+const createError = (message, statusCode = 400) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
+
+// --------------------------------------------------
+// AUDIT HELPER
+// --------------------------------------------------
+const auditAdminAction = async ({
+  adminUserId,
+  eventType,
+  ipAddress,
+  details
+}) => {
+  try {
+    await createAuditLog({
+      userId: adminUserId,
+      eventType,
+      ipAddress: ipAddress || null,
+      details: details || {}
+    });
+  } catch (error) {
+    // Never log secrets or tokens.
+    console.error(`Failed to record audit event: ${eventType}`);
+  }
+};
+
+// --------------------------------------------------
+// DASHBOARD
+// --------------------------------------------------
+const getDashboard = async () => {
+  const stats = await model.getDashboardStats();
+
+  return {
+    stats,
+    message: 'Dashboard statistics retrieved successfully'
+  };
+};
+
+// --------------------------------------------------
+// LIST USERS
+// --------------------------------------------------
+const getUsers = async (filters = {}) => {
+  const limit = Math.min(
+    Math.max(Number(filters.limit) || 50, 1),
+    100
+  );
+
+  const offset = Math.max(
+    Number(filters.offset) || 0,
+    0
+  );
+
+  const role = filters.role || undefined;
+
+  if (role && !ALLOWED_ROLES.includes(role)) {
+    throw createError('Invalid role filter');
+  }
+
+  return model.listUsers({
+    limit,
+    offset,
+    role,
+    search: filters.search
+      ? String(filters.search).trim().slice(0, 100)
+      : undefined
+  });
+};
+
+// --------------------------------------------------
+// AUDIT LOGS
+// --------------------------------------------------
+const getAuditLogs = async (limitValue) => {
+  const limit = Math.min(
+    Math.max(Number(limitValue) || 50, 1),
+    100
+  );
+
+  return model.getRecentAuditLogs(limit);
+};
+
+// --------------------------------------------------
+// ACTIVE SESSIONS
+// --------------------------------------------------
+const getSessions = async (limitValue) => {
+  const limit = Math.min(
+    Math.max(Number(limitValue) || 100, 1),
+    100
+  );
+
+  return model.listActiveSessions(limit);
+};
+
+// --------------------------------------------------
+// REVOKE SESSION
+// --------------------------------------------------
+const revokeSession = async ({
+  sessionId,
+  adminUserId,
+  ipAddress
+}) => {
+  if (!sessionId) {
+    throw createError('Session ID is required');
+  }
+
+  const session = await model.revokeSessionById(sessionId);
+
+  if (!session) {
+    throw createError('Active session not found', 404);
+  }
+
+  await auditAdminAction({
+    adminUserId,
+    eventType: 'SUPER_ADMIN_SESSION_REVOKED',
+    ipAddress,
+    details: {
+      targetSessionId: session.session_id,
+      targetUserId: session.user_id
+    }
+  });
+
+  return { message: 'Session revoked successfully' };
+};
+
+// --------------------------------------------------
+// USER DETAILS
+// --------------------------------------------------
+const getUserDetails = async (userId) => {
+  if (!userId) {
+    throw createError('User ID is required');
+  }
+
+  const user = await model.getUserById(userId);
+
+  if (!user) {
+    throw createError('User not found', 404);
+  }
+
+  return user;
+};
+
+// --------------------------------------------------
+// CREATE MANAGED USER
+// --------------------------------------------------
+const createUser = async ({
+  email,
+  password,
+  role,
+  hubLocationId,
+  adminUserId,
+  ipAddress,
+  encryptedMfaSecret
+}) => {
+  if (typeof email !== 'string' || !email.trim()) {
+    throw createError('A valid email is required');
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (
+    normalizedEmail.length > 254 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+  ) {
+    throw createError('Please provide a valid email address');
+  }
+
+  if (
+    typeof password !== 'string' ||
+    password.length < 12 ||
+    password.length > 72
+  ) {
+    throw createError(
+      'Password must be between 12 and 72 characters'
+    );
+  }
+
+  if (!MANAGED_ROLES.includes(role)) {
+    throw createError(
+      'Only Trade Testers and Center Superintendents can be created here'
+    );
+  }
+
+  const parsedHubId = Number(hubLocationId);
+
+  if (
+    !Number.isSafeInteger(parsedHubId) ||
+    parsedHubId <= 0
+  ) {
+    throw createError(
+      'A valid hubLocationId is required for this role'
+    );
+  }
+
+  if (
+    typeof encryptedMfaSecret !== 'string' ||
+    !encryptedMfaSecret.trim()
+  ) {
+    throw createError(
+      'An encrypted MFA secret must be generated by the auth service'
+    );
+  }
+
+  const exists = await model.emailExists(normalizedEmail);
+
+  if (exists) {
+    throw createError(
+      'An account with this email already exists',
+      409
+    );
+  }
+
+  let user;
+
+  try {
+    user = await model.createManagedUser({
+      email: normalizedEmail,
+      password,
+      role,
+      hubLocationId: parsedHubId,
+      encryptedMfaSecret
+    });
+  } catch (error) {
+    if (error.code === '23505') {
+      throw createError(
+        'An account with this email already exists',
+        409
+      );
+    }
+
+    if (error.code === '23514' || error.code === '23503') {
+      throw createError(
+        'The supplied hub location is invalid',
+        400
+      );
+    }
+
+    throw error;
+  }
+
+  await auditAdminAction({
+    adminUserId,
+    eventType: 'SUPER_ADMIN_USER_CREATED',
+    ipAddress,
+    details: {
+      targetUserId: user.user_id,
+      targetEmail: user.email,
+      targetRole: user.role,
+      hubLocationId: user.hub_location_id
+    }
+  });
+
+  return {
+    message: 'User created successfully. MFA enrollment is required.',
+    user
+  };
+};
+
+// --------------------------------------------------
+// LOCK USER
+// --------------------------------------------------
+const lockUser = async ({
+  userId,
+  adminUserId,
+  ipAddress
+}) => {
+  if (!userId) {
+    throw createError('User ID is required');
+  }
+
+  const target = await model.getSecurityUserById(userId);
+
+  if (!target) {
+    throw createError('User not found', 404);
+  }
+
+  if (target.role === 'SUPER_ADMIN') {
+    throw createError(
+      'Super Admin accounts cannot be locked through this endpoint',
+      403
+    );
+  }
+
+  const user = await model.setAdminLock(userId, true);
+
+  if (!user) {
+    throw createError('User not found', 404);
+  }
+
+  await auditAdminAction({
+    adminUserId,
+    eventType: 'SUPER_ADMIN_USER_LOCKED',
+    ipAddress,
+    details: {
+      targetUserId: user.user_id,
+      targetEmail: user.email,
+      targetRole: user.role
+    }
+  });
+
+  return {
+    message: 'User account locked successfully',
+    user
+  };
+};
+
+// --------------------------------------------------
+// UNLOCK USER
+// --------------------------------------------------
+const unlockUser = async ({
+  userId,
+  adminUserId,
+  ipAddress
+}) => {
+  if (!userId) {
+    throw createError('User ID is required');
+  }
+
+  const target = await model.getSecurityUserById(userId);
+
+  if (!target) {
+    throw createError('User not found', 404);
+  }
+
+  if (target.role === 'SUPER_ADMIN') {
+    throw createError(
+      'Super Admin accounts cannot be unlocked through this endpoint',
+      403
+    );
+  }
+
+  const user = await model.setAdminLock(userId, false);
+
+  if (!user) {
+    throw createError('User not found', 404);
+  }
+
+  await auditAdminAction({
+    adminUserId,
+    eventType: 'SUPER_ADMIN_USER_UNLOCKED',
+    ipAddress,
+    details: {
+      targetUserId: user.user_id,
+      targetEmail: user.email,
+      targetRole: user.role
+    }
+  });
+
+  return {
+    message: 'User account unlocked successfully',
+    user
+  };
+};
+
+// --------------------------------------------------
+// RESET USER MFA
+// --------------------------------------------------
+const resetMfa = async ({
+  userId,
+  adminUserId,
+  ipAddress,
+  encryptedMfaSecret
+}) => {
+  if (!userId) {
+    throw createError('User ID is required');
+  }
+
+  if (
+    typeof encryptedMfaSecret !== 'string' ||
+    !encryptedMfaSecret.trim()
+  ) {
+    throw createError(
+      'A newly generated encrypted MFA secret is required'
+    );
+  }
+
+  const target = await model.getSecurityUserById(userId);
+
+  if (!target) {
+    throw createError('User not found', 404);
+  }
+
+  if (target.role === 'SUPER_ADMIN') {
+    throw createError(
+      'Super Admin MFA cannot be reset through this endpoint',
+      403
+    );
+  }
+
+  const user = await model.resetUserMfa(
+    userId,
+    encryptedMfaSecret
+  );
+
+  if (!user) {
+    throw createError('User not found', 404);
+  }
+
+  await auditAdminAction({
+    adminUserId,
+    eventType: 'SUPER_ADMIN_MFA_RESET',
+    ipAddress,
+    details: {
+      targetUserId: user.user_id,
+      targetEmail: user.email,
+      targetRole: user.role
+    }
+  });
+
+  return {
+    message: 'MFA reset successfully. The user must enroll MFA again.',
+    user
+  };
+};
+
+// --------------------------------------------------
+// EXPORTS
+// --------------------------------------------------
+module.exports = {
+  getDashboard,
+  getUsers,
+  getAuditLogs,
+  getSessions,
+  revokeSession,
+  getUserDetails,
+  createUser,
+  lockUser,
+  unlockUser,
+  resetMfa
+};
