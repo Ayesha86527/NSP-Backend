@@ -66,8 +66,21 @@ const getSessions = async (req, res, next) => {
 // --------------------------------------------------
 const revokeSession = async (req, res, next) => {
   try {
+    const { sessionId } = req.params;
+
+    // Validate session ID before sending it to the database.
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    if (!uuidRegex.test(sessionId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid session ID format'
+      });
+    }
+
     const data = await service.revokeSession({
-      sessionId: req.params.sessionId,
+      sessionId,
       adminUserId: req.user.userId || req.user.id,
       ipAddress: req.ip
     });

@@ -123,9 +123,13 @@ const decryptMfaSecret = encryptedSecret => {
   ]).toString('utf8');
 };
 
-const createAccessToken = user => {
+const createAccessToken = (user, sessionId) => {
   if (!Number.isInteger(Number(user.token_version))) {
     throw new Error('User token version is missing');
+  }
+
+  if (!sessionId) {
+    throw new Error('Session ID is missing');
   }
 
   return jwt.sign(
@@ -134,7 +138,8 @@ const createAccessToken = user => {
       email: user.email,
       role: user.role,
       hubLocationId: user.hub_location_id,
-      tokenVersion: Number(user.token_version)
+      tokenVersion: Number(user.token_version),
+      sid: sessionId
     },
     privateKey,
     {
@@ -172,10 +177,11 @@ const createSession = async (user, ipAddress) => {
   const refreshToken = makeRefreshToken();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  await pool.query(
+  const result = await pool.query(
     `INSERT INTO auth.sessions
         (user_id, refresh_token_hash, ip_address, expires_at, revoked)
-      VALUES ($1, $2, $3, $4, FALSE)`,
+      VALUES ($1, $2, $3, $4, FALSE)
+      RETURNING session_id`,
     [
       user.user_id,
       hashRefreshToken(refreshToken),
@@ -184,8 +190,10 @@ const createSession = async (user, ipAddress) => {
     ]
   );
 
+  const sessionId = result.rows[0].session_id;
+
   return {
-    accessToken: createAccessToken(user),
+    accessToken: createAccessToken(user, sessionId),
     refreshToken
   };
 };
@@ -659,7 +667,7 @@ const refreshAccessToken = async (refreshToken, ipAddress = null) => {
       throw new Error('Refresh rotation failed');
     }
 
-    const accessToken = createAccessToken(user);
+    const accessToken = createAccessToken(user, session.session_id);
 
     await logAuditSafely({
       userId: user.user_id,

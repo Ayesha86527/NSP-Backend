@@ -18,7 +18,11 @@ const authenticate = async (req, res, next) => {
       algorithms: ['RS256']
     });
 
-    if (!decoded.sub || !Number.isInteger(decoded.tokenVersion)) {
+    if (
+      !decoded.sub ||
+      !Number.isInteger(decoded.tokenVersion) ||
+      !decoded.sid
+    ) {
       return res.status(401).json({
         success: false,
         message: 'Invalid access token'
@@ -46,6 +50,23 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         message: 'Session is no longer valid. Please authenticate again.'
+      });
+    }
+
+    const sessionResult = await pool.query(
+      `SELECT session_id
+         FROM auth.sessions
+        WHERE session_id = $1
+          AND user_id = $2
+          AND revoked = FALSE
+          AND expires_at > NOW()`,
+      [decoded.sid, user.user_id]
+    );
+
+    if (sessionResult.rows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'Session has been revoked or expired. Please authenticate again.'
       });
     }
 
