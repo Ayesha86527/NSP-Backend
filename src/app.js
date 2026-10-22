@@ -10,6 +10,7 @@ const authRoutes = require('./modules/auth/auth.routes');
 const candidateRoutes = require('./modules/candidate/candidate.routes');
 const ledgerRoutes = require('./modules/ledger/ledger.routes');
 const verificationRoutes = require('./modules/verification/verification.routes');
+const superAdminRoutes = require('./modules/superAdmin/superAdmin.routes');
 
 const errorHandler = require('./middleware/errorHandler');
 const rateLimiter = require('./middleware/rateLimiter');
@@ -21,6 +22,7 @@ app.use(helmet());                 // sets basic security headers (NFR-SEC basel
 app.use(cors());                   // tighten allowed origins before production
 app.use(express.json());
 app.use(rateLimiter);              // FR-AUTH-06 / NFR-PER-02 — 60 req/min/IP target
+app.use('/api/super-admin', superAdminRoutes);
 
 // --- Health check (deploy this first, before any module logic) ---
 app.get('/health', (req, res) => {
