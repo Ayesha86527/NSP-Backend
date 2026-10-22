@@ -11,6 +11,7 @@ const candidateRoutes = require('./modules/candidate/candidate.routes');
 const ledgerRoutes = require('./modules/ledger/ledger.routes');
 const verificationRoutes = require('./modules/verification/verification.routes');
 const superAdminRoutes = require('./modules/superAdmin/superAdmin.routes');
+const queueRoutes = require('./modules/ledger/queue.routes');
 
 const errorHandler = require('./middleware/errorHandler');
 const rateLimiter = require('./middleware/rateLimiter');
@@ -38,6 +39,7 @@ app.use(
 );   // FR-CAND-xx
 app.use('/api/ledger', ledgerRoutes);          // FR-LEDG-xx
 app.use('/api/verify', verificationRoutes);    // FR-VERI-xx (public, no auth middleware)
+app.use('/api/ledger/queue', queueRoutes);
 
 // --- Error handling — must be last ---
 app.use(errorHandler);

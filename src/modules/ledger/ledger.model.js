@@ -147,16 +147,18 @@ const approveAndQueueCredential = async ({
 };
 
 const getPendingQueueItems = async () => {
-    const result = await pool.query(
-        `
+    const query = `
         SELECT *
         FROM ledger.minting_queue
         WHERE (status IN ('QUEUED', 'FAILED') AND attempt_count < 5)
-           OR (status = 'BROADCASTED' AND updated_at < NOW() - INTERVAL '30 minutes')
+           OR (
+                status = 'BROADCASTED' 
+                AND updated_at < NOW() - (INTERVAL '1 minute' * POWER(2, attempt_count))
+              )
         ORDER BY created_at ASC
         LIMIT 10;
-        `
-    );
+    `;
+    const result = await pool.query(query);
     return result.rows;
 };
 
@@ -261,11 +263,82 @@ const getCredentialStatus = async (credentialId, user) => {
     return result.rows[0] || null;
 };
 
+const revokeCredential = async (credentialId, reason, revokedBy) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+
+        const checkResult = await client.query(
+            `
+            SELECT * FROM ledger.credentials
+            WHERE credential_id = $1
+            FOR UPDATE;
+            `,
+            [credentialId]
+        );
+        const credential = checkResult.rows[0];
+
+        if (!credential) {
+            throw createLedgerError('Credential not found.', 404);
+        }
+
+        if (credential.status === 'REVOKED') {
+            throw createLedgerError('Credential is already revoked.', 409);
+        }
+
+        // 2. Update credential status to REVOKED
+        const updateResult = await client.query(
+            `
+            UPDATE ledger.credentials
+            SET status = 'REVOKED',
+                updated_at = NOW()
+            WHERE credential_id = $1
+            RETURNING *;
+            `,
+            [credentialId]
+        );
+
+
+        console.log(`Credential ${credentialId} revoked by user ${revokedBy}. Reason: ${reason}`);
+
+        await client.query('COMMIT');
+        return updateResult.rows[0];
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+const getCredentialByStringId = async (credentialId) => {
+    const query = `
+        SELECT * FROM ledger.credentials
+        WHERE credential_id = $1;
+    `;
+    const result = await pool.query(query, [credentialId]);
+    return result.rows[0];
+};
+const getQueueHealthStats = async () => {
+    const query = `
+        SELECT 
+            status, 
+            COUNT(*) AS count 
+        FROM ledger.minting_queue 
+        GROUP BY status;
+    `;
+    const result = await pool.query(query);
+    return result.rows;
+};
 module.exports = {
     createCredential,
     approveAndQueueCredential,
     getPendingQueueItems,
     claimQueueItem,
     updateQueueStatus,
-    getCredentialStatus
+    getCredentialStatus,
+    revokeCredential,
+    getCredentialByStringId,
+    getQueueHealthStats
 };
