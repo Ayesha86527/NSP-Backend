@@ -1,5 +1,5 @@
-const { Pool } = require('pg');
-
+require('dotenv').config();
+const pool=require('../src/config/db.js')
 
 
 async function getCandidate() {

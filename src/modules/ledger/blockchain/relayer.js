@@ -1,7 +1,7 @@
 const { ethers } = require('ethers');
-const { getContractInstance } = require('./contract');
+const { getContractInstance, getProvider } = require('./contract');
 const LedgerModel = require('../ledger.model');
-
+const {checkRelayerBalance}=require('./contract')
 let isProcessingQueue = false;
 
 const stringToBytes32 = (str) => {
@@ -15,13 +15,23 @@ const processMintingQueue = async () => {
 
     isProcessingQueue = true;
     try {
+        try {
+            const provider = getProvider();
+            const privateKey = process.env.RELAYER_PRIVATE_KEY;
+            if (privateKey) {
+                const relayerWallet = new ethers.Wallet(privateKey, provider);
+                await checkRelayerBalance(provider, relayerWallet);
+            }
+        } catch (balanceError) {
+            console.error('Relayer balance check warning:', balanceError.message);
+        }
         const pendingItems = await LedgerModel.getPendingQueueItems();
 
         if (!pendingItems || pendingItems.length === 0) {
             console.log('No pending items in the minting queue.');
             return;
         }
-        const contract = getContractInstance();
+        const contract =await getContractInstance();
         for (const pendingItem of pendingItems) {
             try {
                 const item = await LedgerModel.claimQueueItem(pendingItem.id);

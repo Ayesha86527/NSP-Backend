@@ -4,6 +4,8 @@ node_modules/
 # Environment variables
 .env
 db/migrations/ledger/
+db/migrations/
+src/config/keys
 # Key folders and PEM files
 
 keys/

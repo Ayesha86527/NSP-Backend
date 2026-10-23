@@ -98,14 +98,17 @@ const validateCredentialId = (credentialId) => {
 
 const issueCredentialOnly = async (reqBody, user) => {
     const { candidateId, credentialSubject } = validateCredentialInput(reqBody);
-    if (user.hubLocationId === undefined || user.hubLocationId === null) {
-        throw validationError('Trade Tester hub is required.', 403);
+    if (user.role === 'SUPER_ADMIN') {
+        candidate = await CandidateModel.findById(candidateId); // ya direct pool query bhi kar sakte hain
+    } else {
+        if (user.hubLocationId === undefined || user.hubLocationId === null) {
+            throw validationError('Trade Tester hub is required.', 403);
+        }
+        candidate = await CandidateModel.findByIdInHub(
+            candidateId,
+            user.hubLocationId
+        );
     }
-
-    const candidate = await CandidateModel.findByIdInHub(
-        candidateId,
-        user.hubLocationId
-    );
 
     if (!candidate) {
         throw validationError('Candidate not found.', 404);
@@ -170,11 +173,32 @@ const getCredentialStatus = async (credentialId, user) => {
     return result;
 };
 
+const revokeCredential=async(credentialId, reason , user)=>{
+    validateCredentialId(credentialId);
+    if (!['SUPER_ADMIN', 'CENTER_SUPERINTENDENT'].includes(user.role)) {
+        throw validationError('Only Super Admins or Center Superintendents are authorized to revoke credentials.', 403);
+    }
+    if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
+        throw validationError('A valid revocation reason is required.');
+    }
+    const revokedCredential = await LedgerModel.revokeCredential(
+        credentialId, 
+        reason.trim(), 
+        user.userId
+    );
+    return {
+        success: true,
+        message: 'Credential successfully revoked.',
+        data: revokedCredential
+    };
+}
+
 module.exports = {
     issueCredentialOnly,
     approveAndQueueCredential,
     getCredentialStatus,
     validateCredentialInput,
     validateCredentialId,
-    stableStringify
+    stableStringify,
+    revokeCredential
 };

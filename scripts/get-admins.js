@@ -1,5 +1,5 @@
-const { Pool } = require('pg');
 
+const pool=require('../src/config/db.js')
 
 async function inspectUsers() {
   try {

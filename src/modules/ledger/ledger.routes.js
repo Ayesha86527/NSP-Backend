@@ -4,7 +4,8 @@ const {
     issueCredentialController,
     approveCredentialController,
     getCredentialStatusController,
-    verifyCredentialController
+    revokeCredentialController,
+    getRelayerBalanceController
 } = require('./ledger.controller');
 const {
     authenticate,
@@ -14,27 +15,33 @@ const {
 router.post(
     '/issue',
     authenticate,
-    requireRole('TRADE_TESTER'),
+    requireRole('TRADE_TESTER', 'CENTER_SUPERINTENDENT', 'SUPER_ADMIN'),
     issueCredentialController
 );
-
 router.post(
     '/approve',
     authenticate,
     requireRole('CENTER_SUPERINTENDENT', 'SUPER_ADMIN'),
     approveCredentialController
 );
-
 router.get(
-    '/verify/:credentialId',
-    verifyCredentialController
+    '/relayer-balance',
+    authenticate,
+    requireRole('SUPER_ADMIN'),
+    getRelayerBalanceController
 );
-
 router.get(
     '/:credentialId',
     authenticate,
     requireRole('TRADE_TESTER', 'CENTER_SUPERINTENDENT', 'SUPER_ADMIN'),
     getCredentialStatusController
 );
+router.post(
+    '/:credentialId/revoke',
+    authenticate,
+    requireRole('CENTER_SUPERINTENDENT', 'SUPER_ADMIN'),
+    revokeCredentialController
+);
+
 
 module.exports = router;

@@ -1,7 +1,8 @@
 const LedgerService = require('./ledger.service');
-const { getReadOnlyContractInstance } = require('./blockchain/contract');
+const { getReadOnlyContractInstance, getProvider } = require('./blockchain/contract');
 const { ethers } = require('ethers');
-
+const LedgerModule=require('./ledger.model')
+const{processMintingQueue}=require('./blockchain/relayer')
 const handleControllerError = (error, res) => {
     if (error.statusCode && error.statusCode < 500) {
         return res.status(error.statusCode).json({
@@ -103,9 +104,56 @@ const verifyCredentialController = async (req, res) => {
     }
 };
 
+const revokeCredentialController = async (req, res, next) => {
+    try {
+        const { credentialId } = req.params;
+        const { reason } = req.body;
+        const user = req.user; 
+
+        const result = await LedgerService.revokeCredential(credentialId, reason, user);
+
+        return res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getRelayerBalanceController = async (req, res, next) => {
+    try {
+        const provider = getProvider();
+        const privateKey = process.env.RELAYER_PRIVATE_KEY;
+        
+        const relayerWallet = new ethers.Wallet(privateKey, provider);
+        
+
+        const balance = await provider.getBalance(relayerWallet.address);
+        const balanceMatic = ethers.formatEther(balance);
+        
+        const thresholdInput = process.env.MIN_GAS_THRESHOLD || "1";
+        const checkThreshold = ethers.parseEther(thresholdInput);
+        const isLowGas = balance < checkThreshold;
+
+        return res.status(200).json({
+            success: true,
+            walletAddress: relayerWallet.address,
+            balanceMatic: balanceMatic,
+            isLowGas: isLowGas,
+            message: isLowGas ? 'Warning: Relayer balance is critically low!' : 'Balance is sufficient.'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+
+
 module.exports = {
     issueCredentialController,
     approveCredentialController,
     getCredentialStatusController,
-    verifyCredentialController
+    verifyCredentialController,
+    revokeCredentialController,
+    getRelayerBalanceController
+    
 };

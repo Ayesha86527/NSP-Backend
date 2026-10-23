@@ -228,8 +228,8 @@ const createSession = async (user, ipAddress, deviceFingerprint = null) => {
   const result = await pool.query(
     `INSERT INTO auth.sessions
         (user_id, refresh_token_hash, ip_address, device_fingerprint, expires_at, revoked)
-      VALUES ($1, $2, $3, $4, $5, FALSE)
-      RETURNING session_id`,
+     VALUES ($1, $2, $3, $4, $5, FALSE)
+     RETURNING session_id`,
     [
       user.user_id,
       hashRefreshToken(refreshToken),
