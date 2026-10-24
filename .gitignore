@@ -3,11 +3,16 @@ node_modules/
 
 # Environment variables
 .env
-db/migrations/ledger/
-db/migrations/
-src/config/keys
-# Key folders and PEM files
 
+# Migrations: ignore everything except the Day 4 DDL file
+db/migrations/*
+!db/migrations/day4/
+db/migrations/day4/*
+!db/migrations/day4/001_complete_schema_ddl.sql
+
+src/config/keys
+
+# Key folders and PEM files
 keys/
 *.pem
 nsp-dev-key.pem
