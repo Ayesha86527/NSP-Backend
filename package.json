@@ -5,7 +5,14 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "test": "node --test test/*.test.js tests/*.test.js",
+    "test:e2e": "node --test test/e2e.lifecycle.test.js",
+    "seed:hubs": "node scripts/seedHubs.js",
+    "migrate": "node scripts/run-migration.js",
+    "keys:generate": "node scripts/generateJwtKeys.js",
+    "check:env": "node scripts/checkEnv.js",
+    "smoke": "node scripts/smoke-test.js"
   },
   "keywords": [],
   "author": "",

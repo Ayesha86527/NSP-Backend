@@ -3,16 +3,23 @@ node_modules/
 
 # Environment variables
 .env
+src/config/keys
 
-# Migrations: ignore everything except the Day 4 DDL file
+# Migrations: ignore everything except the folders we deliberately track
 db/migrations/*
+!db/migrations/auth/
+!db/migrations/candidate/
 !db/migrations/day4/
 db/migrations/day4/*
 !db/migrations/day4/001_complete_schema_ddl.sql
-
-src/config/keys
 
 # Key folders and PEM files
 keys/
 *.pem
 nsp-dev-key.pem
+
+# Environment-specific files (only the *.example templates are committed)
+.env.*
+!.env.example
+!.env.production.example
+seed-credentials*.json
