@@ -1,7 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const keysDirectory = path.join(__dirname, 'keys');
+// Keys live in src/config/keys by default. In production mount them as
+// secrets and point JWT_KEYS_DIR at the mount (e.g. /etc/nsp/keys).
+const keysDirectory = process.env.JWT_KEYS_DIR || path.join(__dirname, 'keys');
 
 const privateKey = fs.readFileSync(
     path.join(keysDirectory, 'private.key'),

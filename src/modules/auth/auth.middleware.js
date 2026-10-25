@@ -1,3 +1,4 @@
+const { requireRole } = require('./role.middleware');
 const jwt = require('jsonwebtoken');
 const pool = require('../../config/db');
 const { publicKey } = require('../../config/jwt');
@@ -167,24 +168,6 @@ const authenticateMfaEnrollment = async (req, res, next) => {
 
     return next(error);
   }
-};
-
-const requireRole = (...allowedRoles) => (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({
-      success: false,
-      message: 'Authentication required'
-    });
-  }
-
-  if (!allowedRoles.includes(req.user.role)) {
-    return res.status(403).json({
-      success: false,
-      message: 'Access denied'
-    });
-  }
-
-  return next();
 };
 
 module.exports = {

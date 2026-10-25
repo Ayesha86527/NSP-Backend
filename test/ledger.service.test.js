@@ -3,7 +3,7 @@ const test = require('node:test');
 const CandidateModel = require('../src/modules/candidate/candidate.model');
 const LedgerModel = require('../src/modules/ledger/ledger.model');
 const LedgerService = require('../src/modules/ledger/ledger.service');
-const { requireRole } = require('../src/modules/auth/auth.middleware');
+const { requireRole } = require('../src/modules/auth/role.middleware');
 
 const candidateId = '123e4567-e89b-12d3-a456-426614174000';
 const validInput = () => ({
