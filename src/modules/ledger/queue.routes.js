@@ -21,7 +21,7 @@ router.get(
 router.post(
     '/trigger',
     authenticate,
-    requireRole('TRADE_TESTER', 'CENTER_SUPERINTENDENT', 'SUPER_ADMIN'),
+    requireRole('CENTER_SUPERINTENDENT', 'SUPER_ADMIN'),
     triggerQueueController
 );
 
