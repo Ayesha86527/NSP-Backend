@@ -62,9 +62,17 @@ const recordFailedMfa = async (userId) => {
     const result = await pool.query(
         `
         UPDATE auth.users
-        SET failed_mfa_attempts = failed_mfa_attempts + 1
+        SET
+            failed_mfa_attempts = failed_mfa_attempts + 1,
+            mfa_locked_until = CASE
+                WHEN failed_mfa_attempts + 1 >= 5
+                THEN NOW() + INTERVAL '15 minutes'
+                ELSE mfa_locked_until
+            END
         WHERE user_id = $1
-        RETURNING failed_mfa_attempts
+        RETURNING
+            failed_mfa_attempts,
+            mfa_locked_until
         `,
         [userId]
     );
@@ -76,7 +84,9 @@ const resetFailedMfa = async (userId) => {
     await pool.query(
         `
         UPDATE auth.users
-        SET failed_mfa_attempts = 0
+        SET
+            failed_mfa_attempts = 0,
+            mfa_locked_until = NULL
         WHERE user_id = $1
         `,
         [userId]
@@ -151,7 +161,6 @@ const revokeSession = async (sessionId) => {
     );
 };
 
-
 const rotateRefreshToken = async (
     sessionId,
     oldRefreshTokenHash,
@@ -193,7 +202,6 @@ const rotateRefreshToken = async (
 
     return result.rows[0] || null;
 };
-
 
 module.exports = {
     findUserByEmail,

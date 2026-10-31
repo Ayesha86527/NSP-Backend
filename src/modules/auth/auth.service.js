@@ -18,7 +18,9 @@ const {
   revokeSession,
   rotateRefreshToken,
   recordFailedLogin,
-  resetFailedLoginAttempts
+  resetFailedLoginAttempts,
+  recordFailedMfa,
+  resetFailedMfa
 } = require('./auth.model');
 
 const {
@@ -178,7 +180,8 @@ const getSecurityUser = async userId => {
     `SELECT user_id, email, role, hub_location_id,
             password_hash, mfa_secret, is_mfa_active,
             mfa_enrollment_pending, admin_locked,
-            token_version, failed_login_attempts, locked_until
+            token_version, failed_login_attempts, locked_until,
+            failed_mfa_attempts, mfa_locked_until
        FROM auth.users
       WHERE user_id = $1`,
     [userId]
@@ -189,6 +192,10 @@ const getSecurityUser = async userId => {
 
 const isTemporarilyLocked = user =>
   user.locked_until && new Date(user.locked_until) > new Date();
+
+const isMfaLocked = user =>
+  user.mfa_locked_until &&
+  new Date(user.mfa_locked_until) > new Date();
 
 const isAdminLocked = user => user.admin_locked === true;
 
@@ -214,8 +221,13 @@ const resolveFingerprint = (deviceFingerprint, ipAddress = null) => {
   ) {
     return deviceFingerprint.trim().toLowerCase();
   }
+
   const ip = ipAddress || '127.0.0.1';
-  return crypto.createHash('sha256').update(`fallback-ua|${ip}`).digest('hex');
+
+  return crypto
+    .createHash('sha256')
+    .update(`fallback-ua|${ip}`)
+    .digest('hex');
 };
 
 /**
@@ -226,7 +238,10 @@ const resolveFingerprint = (deviceFingerprint, ipAddress = null) => {
 const createSession = async (user, ipAddress, deviceFingerprint = null) => {
   const refreshToken = makeRefreshToken();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const resolvedFingerprint = resolveFingerprint(deviceFingerprint, ipAddress);
+  const resolvedFingerprint = resolveFingerprint(
+    deviceFingerprint,
+    ipAddress
+  );
 
   const result = await pool.query(
     `INSERT INTO auth.sessions
@@ -253,7 +268,12 @@ const createSession = async (user, ipAddress, deviceFingerprint = null) => {
 // ======================================================
 // LOGIN: EMAIL + PASSWORD + ACCOUNT LOCKOUT
 // ======================================================
-const login = async (email, password, ipAddress = null, deviceFingerprint = null) => {
+const login = async (
+  email,
+  password,
+  ipAddress = null,
+  deviceFingerprint = null
+) => {
   const foundUser = await findUserByEmail(email);
 
   if (!foundUser) {
@@ -289,7 +309,10 @@ const login = async (email, password, ipAddress = null, deviceFingerprint = null
     return { success: false, message: 'Account is locked' };
   }
 
-  const passwordMatches = await bcrypt.compare(password, user.password_hash);
+  const passwordMatches = await bcrypt.compare(
+    password,
+    user.password_hash
+  );
 
   if (!passwordMatches) {
     const failed = await recordFailedLogin(user.user_id);
@@ -304,9 +327,10 @@ const login = async (email, password, ipAddress = null, deviceFingerprint = null
 
     return {
       success: false,
-      message: failed && failed.failed_login_attempts >= 5
-        ? 'Account locked for 15 minutes due to too many failed login attempts.'
-        : 'Invalid email or password'
+      message:
+        failed && failed.failed_login_attempts >= 5
+          ? 'Account locked for 15 minutes due to too many failed login attempts.'
+          : 'Invalid email or password'
     };
   }
 
@@ -328,7 +352,7 @@ const login = async (email, password, ipAddress = null, deviceFingerprint = null
       privateKey,
       {
         algorithm: 'RS256',
-        expiresIn: '5m'
+        expiresIn: '15m'
       }
     );
 
@@ -423,7 +447,11 @@ const startMfaEnrollment = async (userId, ipAddress = null) => {
 // ======================================================
 // CONFIRM MFA ENROLLMENT
 // ======================================================
-const confirmMfaEnrollment = async (userId, code, ipAddress = null) => {
+const confirmMfaEnrollment = async (
+  userId,
+  code,
+  ipAddress = null
+) => {
   const user = await getSecurityUser(userId);
 
   if (
@@ -432,22 +460,27 @@ const confirmMfaEnrollment = async (userId, code, ipAddress = null) => {
     isTemporarilyLocked(user) ||
     !user.mfa_enrollment_pending
   ) {
-    return { success: false, message: 'MFA enrollment is not pending' };
+    return {
+      success: false,
+      message: 'MFA enrollment is not pending'
+    };
   }
 
   let result;
 
   try {
     const secret = decryptMfaSecret(user.mfa_secret);
+
     result = await verify({
       secret,
-      token: String(code || '')
+      token: String(code || '').trim()
     });
   } catch (error) {
     console.error(
       '[MFA ENROLLMENT VERIFY ERROR]',
       error.message
     );
+
     result = { valid: false };
   }
 
@@ -460,7 +493,10 @@ const confirmMfaEnrollment = async (userId, code, ipAddress = null) => {
       details: { reason: 'INVALID_CODE' }
     });
 
-    return { success: false, message: 'Invalid MFA code' };
+    return {
+      success: false,
+      message: 'Invalid MFA code'
+    };
   }
 
   await pool.query(
@@ -488,11 +524,19 @@ const confirmMfaEnrollment = async (userId, code, ipAddress = null) => {
 // ======================================================
 // VERIFY MFA DURING LOGIN
 // ======================================================
-const verifyMfa = async (email, mfaCode, ipAddress = null, deviceFingerprint = null) => {
+const verifyMfa = async (
+  email,
+  mfaCode,
+  ipAddress = null,
+  deviceFingerprint = null
+) => {
   const found = await findUserForMfa(email);
 
   if (!found) {
-    return { success: false, message: 'Invalid user or MFA code' };
+    return {
+      success: false,
+      message: 'Invalid user or MFA code'
+    };
   }
 
   const user = await getSecurityUser(found.user_id);
@@ -501,6 +545,7 @@ const verifyMfa = async (email, mfaCode, ipAddress = null, deviceFingerprint = n
     !user ||
     isAdminLocked(user) ||
     isTemporarilyLocked(user) ||
+    isMfaLocked(user) ||
     !getAllowedAuthRole(user.role) ||
     !user.is_mfa_active ||
     user.mfa_enrollment_pending
@@ -510,7 +555,9 @@ const verifyMfa = async (email, mfaCode, ipAddress = null, deviceFingerprint = n
       eventType: 'AUTH_MFA_BLOCKED',
       email,
       ipAddress,
-      details: { reason: 'ACCOUNT_UNAVAILABLE_OR_MFA_INACTIVE' }
+      details: {
+        reason: 'ACCOUNT_UNAVAILABLE_OR_MFA_INACTIVE'
+      }
     });
 
     return {
@@ -522,29 +569,48 @@ const verifyMfa = async (email, mfaCode, ipAddress = null, deviceFingerprint = n
   let valid = false;
 
   try {
-    valid = (await verify({
-      secret: decryptMfaSecret(user.mfa_secret),
-      token: String(mfaCode || '')
-    })).valid;
-  } catch {
+    valid = (
+      await verify({
+        secret: decryptMfaSecret(user.mfa_secret),
+        token: String(mfaCode || '').trim()
+      })
+    ).valid;
+  } catch (error) {
+    console.error('[MFA VERIFY ERROR]', error.message);
     valid = false;
   }
 
   if (!valid) {
+    const failed = await recordFailedMfa(user.user_id);
+
     await logAuditSafely({
       userId: user.user_id,
       eventType: 'AUTH_MFA_FAILED',
       email: user.email,
       ipAddress,
-      details: { reason: 'INVALID_MFA_CODE' }
+      details: {
+        reason: 'INVALID_MFA_CODE',
+        failedMfaAttempts: failed?.failed_mfa_attempts ?? null
+      }
     });
 
-    return { success: false, message: 'Invalid MFA code' };
+    return {
+      success: false,
+      message:
+        failed && failed.failed_mfa_attempts >= 5
+          ? 'MFA locked for 15 minutes due to too many failed attempts.'
+          : 'Invalid MFA code'
+    };
   }
 
   await resetFailedLoginAttempts(user.user_id);
+  await resetFailedMfa(user.user_id);
 
-  const tokens = await createSession(user, ipAddress, deviceFingerprint);
+  const tokens = await createSession(
+    user,
+    ipAddress,
+    deviceFingerprint
+  );
 
   await logAuditSafely({
     userId: user.user_id,
@@ -553,7 +619,10 @@ const verifyMfa = async (email, mfaCode, ipAddress = null, deviceFingerprint = n
     ipAddress,
     details: {
       method: 'TOTP',
-      deviceFingerprint: resolveFingerprint(deviceFingerprint, ipAddress)
+      deviceFingerprint: resolveFingerprint(
+        deviceFingerprint,
+        ipAddress
+      )
     }
   });
 
@@ -590,9 +659,10 @@ const generateBackupCodes = async userId => {
   if (!result.created) {
     return {
       success: false,
-      message: result.reason === 'user_not_found'
-        ? 'User not found'
-        : 'Backup codes already exist. Use your existing codes.'
+      message:
+        result.reason === 'user_not_found'
+          ? 'User not found'
+          : 'Backup codes already exist. Use your existing codes.'
     };
   }
 
@@ -612,11 +682,20 @@ const generateBackupCodes = async userId => {
 // ======================================================
 // VERIFY BACKUP CODE DURING LOGIN
 // ======================================================
-const verifyBackupCode = async (email, password, backupCode, ipAddress = null, deviceFingerprint = null) => {
+const verifyBackupCode = async (
+  email,
+  password,
+  backupCode,
+  ipAddress = null,
+  deviceFingerprint = null
+) => {
   const found = await findUserByEmail(email);
 
   if (!found) {
-    return { success: false, message: 'Invalid credentials or backup code' };
+    return {
+      success: false,
+      message: 'Invalid credentials or backup code'
+    };
   }
 
   const user = await getSecurityUser(found.user_id);
@@ -629,12 +708,19 @@ const verifyBackupCode = async (email, password, backupCode, ipAddress = null, d
     !user.is_mfa_active ||
     user.mfa_enrollment_pending
   ) {
-    return { success: false, message: 'Account unavailable' };
+    return {
+      success: false,
+      message: 'Account unavailable'
+    };
   }
 
   if (!await bcrypt.compare(password, user.password_hash)) {
     await recordFailedLogin(user.user_id);
-    return { success: false, message: 'Invalid credentials or backup code' };
+
+    return {
+      success: false,
+      message: 'Invalid credentials or backup code'
+    };
   }
 
   const verification = await verifyAndConsumeBackupCode(
@@ -648,7 +734,9 @@ const verifyBackupCode = async (email, password, backupCode, ipAddress = null, d
       eventType: 'AUTH_BACKUP_CODE_LOGIN_FAILED',
       email: user.email,
       ipAddress,
-      details: { reason: 'INVALID_OR_USED_BACKUP_CODE' }
+      details: {
+        reason: 'INVALID_OR_USED_BACKUP_CODE'
+      }
     });
 
     return {
@@ -659,9 +747,16 @@ const verifyBackupCode = async (email, password, backupCode, ipAddress = null, d
 
   await resetFailedLoginAttempts(user.user_id);
 
-  const tokens = await createSession(user, ipAddress, deviceFingerprint);
+  const tokens = await createSession(
+    user,
+    ipAddress,
+    deviceFingerprint
+  );
 
-  const resolvedFingerprint = resolveFingerprint(deviceFingerprint, ipAddress);
+  const resolvedFingerprint = resolveFingerprint(
+    deviceFingerprint,
+    ipAddress
+  );
 
   await logAuditSafely({
     userId: user.user_id,
@@ -686,6 +781,176 @@ const verifyBackupCode = async (email, password, backupCode, ipAddress = null, d
       role: user.role,
       hubLocationId: user.hub_location_id
     }
+  };
+};
+
+// ======================================================
+// STEP-UP MFA TOKEN (B1)
+// ======================================================
+const createStepUpToken = async ({
+  userId,
+  sessionId,
+  scope,
+  mfaCode,
+  backupCode,
+  ipAddress = null
+}) => {
+  const allowedScopes = [
+    'APPROVE_ASSESSMENT',
+    'REVOKE_CREDENTIAL',
+    'REGISTER_HUB_KEY',
+    'CHANGE_ROLE',
+    'RESET_MFA'
+  ];
+
+  if (!allowedScopes.includes(scope)) {
+    return {
+      success: false,
+      message: 'Invalid step-up scope'
+    };
+  }
+
+  const hasMfaCode =
+    typeof mfaCode === 'string' && mfaCode.trim().length > 0;
+
+  const hasBackupCode =
+    typeof backupCode === 'string' && backupCode.trim().length > 0;
+
+  if (hasMfaCode === hasBackupCode) {
+    return {
+      success: false,
+      message: 'Provide exactly one MFA code or backup code'
+    };
+  }
+
+  const user = await getSecurityUser(userId);
+
+  if (
+    !user ||
+    isAdminLocked(user) ||
+    isTemporarilyLocked(user) ||
+    isMfaLocked(user) ||
+    !user.is_mfa_active ||
+    user.mfa_enrollment_pending
+  ) {
+    return {
+      success: false,
+      message: 'Account unavailable or MFA is not active'
+    };
+  }
+
+  let valid = false;
+  let verificationMethod = null;
+
+  if (hasMfaCode) {
+    verificationMethod = 'TOTP';
+
+    try {
+      valid = (
+        await verify({
+          secret: decryptMfaSecret(user.mfa_secret),
+          token: mfaCode.trim()
+        })
+      ).valid;
+    } catch (error) {
+      valid = false;
+    }
+  } else {
+    verificationMethod = 'BACKUP_CODE';
+
+    const result = await verifyAndConsumeBackupCode(
+      userId,
+      backupCode.trim()
+    );
+
+    valid = result.success;
+  }
+
+  if (!valid) {
+    const failed = await recordFailedMfa(userId);
+
+    await logAuditSafely({
+      userId,
+      eventType: 'AUTH_STEP_UP_FAILED',
+      email: user.email,
+      ipAddress,
+      details: {
+        scope,
+        method: verificationMethod,
+        failedMfaAttempts: failed?.failed_mfa_attempts ?? null
+      }
+    });
+
+    return {
+      success: false,
+      message:
+        failed && failed.failed_mfa_attempts >= 5
+          ? 'MFA locked for 15 minutes due to too many failed attempts.'
+          : 'Invalid MFA code'
+    };
+  }
+
+  await resetFailedMfa(userId);
+
+  const stepUpToken = jwt.sign(
+    {
+      sub: userId,
+      sid: sessionId,
+      scope,
+      purpose: 'step_up',
+      jti: crypto.randomUUID()
+    },
+    privateKey,
+    {
+      algorithm: 'RS256',
+      expiresIn: '5m'
+    }
+  );
+
+  const decodedToken = jwt.decode(stepUpToken);
+
+  const tokenHash = crypto
+    .createHash('sha256')
+    .update(stepUpToken)
+    .digest('hex');
+
+  await pool.query(
+    `
+    INSERT INTO auth.step_up_tokens (
+      token_hash,
+      user_id,
+      session_id,
+      scope,
+      expires_at
+    )
+    VALUES ($1, $2, $3, $4, to_timestamp($5))
+    `,
+    [
+      tokenHash,
+      userId,
+      sessionId,
+      scope,
+      decodedToken.exp
+    ]
+  );
+
+  await logAuditSafely({
+    userId,
+    eventType: 'AUTH_STEP_UP_SUCCESS',
+    email: user.email,
+    ipAddress,
+    details: {
+      scope,
+      method: verificationMethod
+    }
+  });
+
+  return {
+    success: true,
+    message: 'Step-up authentication successful',
+    stepUpToken,
+    tokenType: 'Bearer',
+    expiresIn: 300
   };
 };
 
@@ -717,7 +982,10 @@ const refreshAccessToken = async (
   let auditUser = null;
 
   try {
-    if (typeof refreshToken !== 'string' || refreshToken.length === 0) {
+    if (
+      typeof refreshToken !== 'string' ||
+      refreshToken.length === 0
+    ) {
       throw new Error('Invalid refresh token');
     }
 
@@ -746,12 +1014,18 @@ const refreshAccessToken = async (
 
     auditUser = user;
 
-    const resolvedFingerprint = resolveFingerprint(deviceFingerprint, ipAddress);
+    const resolvedFingerprint = resolveFingerprint(
+      deviceFingerprint,
+      ipAddress
+    );
 
     // Phase 1 Device Fingerprint Validation (FR-AUTH-04)
     // If session was bound to a fingerprint and incoming differs, log anomaly
     // but do not terminate/reject session (non-disruptive Phase 1).
-    if (session.device_fingerprint && session.device_fingerprint !== resolvedFingerprint) {
+    if (
+      session.device_fingerprint &&
+      session.device_fingerprint !== resolvedFingerprint
+    ) {
       await logAuditSafely({
         userId: user.user_id,
         eventType: 'AUTH_DEVICE_MISMATCH',
@@ -783,7 +1057,10 @@ const refreshAccessToken = async (
       throw new Error('Refresh token rotation failed');
     }
 
-    const accessToken = createAccessToken(user, session.session_id);
+    const accessToken = createAccessToken(
+      user,
+      session.session_id
+    );
 
     await logAuditSafely({
       userId: user.user_id,
@@ -810,7 +1087,9 @@ const refreshAccessToken = async (
       eventType: 'AUTH_TOKEN_REFRESH_FAILED',
       email: auditUser ? auditUser.email : null,
       ipAddress,
-      details: { reason: 'INVALID_OR_EXPIRED_REFRESH_TOKEN' }
+      details: {
+        reason: 'INVALID_OR_EXPIRED_REFRESH_TOKEN'
+      }
     });
 
     throw new Error('Invalid or expired refresh token');
@@ -820,16 +1099,27 @@ const refreshAccessToken = async (
 // ======================================================
 // REVOKE SESSION
 // ======================================================
-const revokeUserSession = async (refreshToken, ipAddress = null) => {
+const revokeUserSession = async (
+  refreshToken,
+  ipAddress = null
+) => {
   try {
-    if (typeof refreshToken !== 'string' || refreshToken.length === 0) {
+    if (
+      typeof refreshToken !== 'string' ||
+      refreshToken.length === 0
+    ) {
       await logAuditSafely({
         eventType: 'AUTH_SESSION_REVOCATION_FAILED',
         ipAddress,
-        details: { reason: 'MISSING_REFRESH_TOKEN' }
+        details: {
+          reason: 'MISSING_REFRESH_TOKEN'
+        }
       });
 
-      return { success: false, message: 'Failed to revoke session' };
+      return {
+        success: false,
+        message: 'Failed to revoke session'
+      };
     }
 
     const session = await findSessionByRefreshTokenHash(
@@ -840,7 +1130,9 @@ const revokeUserSession = async (refreshToken, ipAddress = null) => {
       await logAuditSafely({
         eventType: 'AUTH_SESSION_REVOCATION_FAILED',
         ipAddress,
-        details: { reason: 'SESSION_NOT_FOUND_OR_INVALID' }
+        details: {
+          reason: 'SESSION_NOT_FOUND_OR_INVALID'
+        }
       });
 
       return {
@@ -854,7 +1146,9 @@ const revokeUserSession = async (refreshToken, ipAddress = null) => {
         userId: session.user_id,
         eventType: 'AUTH_SESSION_REVOCATION_FAILED',
         ipAddress,
-        details: { reason: 'SESSION_ALREADY_REVOKED' }
+        details: {
+          reason: 'SESSION_ALREADY_REVOKED'
+        }
       });
 
       return {
@@ -872,7 +1166,9 @@ const revokeUserSession = async (refreshToken, ipAddress = null) => {
       eventType: 'AUTH_SESSION_REVOKED',
       email: user ? user.email : null,
       ipAddress,
-      details: { result: 'SUCCESS' }
+      details: {
+        result: 'SUCCESS'
+      }
     });
 
     return {
@@ -883,12 +1179,20 @@ const revokeUserSession = async (refreshToken, ipAddress = null) => {
     await logAuditSafely({
       eventType: 'AUTH_SESSION_REVOCATION_FAILED',
       ipAddress,
-      details: { reason: 'REVOCATION_OPERATION_FAILED' }
+      details: {
+        reason: 'REVOCATION_OPERATION_FAILED'
+      }
     });
 
-    console.error('[AUTH] Session revocation failed:', error.message);
+    console.error(
+      '[AUTH] Session revocation failed:',
+      error.message
+    );
 
-    return { success: false, message: 'Failed to revoke session' };
+    return {
+      success: false,
+      message: 'Failed to revoke session'
+    };
   }
 };
 
@@ -905,5 +1209,6 @@ module.exports = {
   revokeUserSession,
   startMfaEnrollment,
   confirmMfaEnrollment,
-  createEncryptedMfaSecret
+  createEncryptedMfaSecret,
+  createStepUpToken
 };

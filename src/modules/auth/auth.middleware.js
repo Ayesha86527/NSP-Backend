@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { requireRole } = require('./role.middleware');
 const jwt = require('jsonwebtoken');
 const pool = require('../../config/db');
@@ -76,7 +77,8 @@ const authenticate = async (req, res, next) => {
       id: user.user_id,
       email: user.email,
       role: user.role,
-      hubLocationId: user.hub_location_id
+      hubLocationId: user.hub_location_id,
+      sessionId: decoded.sid
     };
 
     return next();
@@ -170,8 +172,133 @@ const authenticateMfaEnrollment = async (req, res, next) => {
   }
 };
 
+// ======================================================
+// STEP-UP MFA AUTHORIZATION (B1)
+// ======================================================
+const requireStepUp = (requiredScope) => {
+  const allowedScopes = [
+    'APPROVE_ASSESSMENT',
+    'REVOKE_CREDENTIAL',
+    'REGISTER_HUB_KEY',
+    'CHANGE_ROLE',
+    'RESET_MFA'
+  ];
+
+  // Validate the scope when the route is configured.
+  if (!allowedScopes.includes(requiredScope)) {
+    throw new Error(`Invalid step-up scope: ${requiredScope}`);
+  }
+
+  return async (req, res, next) => {
+    try {
+      const stepUpToken = req.headers['x-step-up-token'];
+
+      if (!stepUpToken) {
+        return res.status(401).json({
+          success: false,
+          message: 'Step-up authentication token is required'
+        });
+      }
+
+      if (!req.user?.userId || !req.user?.sessionId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authenticated user session is required'
+        });
+      }
+
+      let decoded;
+
+      try {
+        decoded = jwt.verify(stepUpToken, publicKey, {
+          algorithms: ['RS256']
+        });
+      } catch (error) {
+        if (
+          error.name === 'JsonWebTokenError' ||
+          error.name === 'TokenExpiredError' ||
+          error.name === 'NotBeforeError'
+        ) {
+          return res.status(401).json({
+            success: false,
+            message: 'Invalid or expired step-up token'
+          });
+        }
+
+        throw error;
+      }
+
+      // Verify token purpose and ownership.
+      if (
+        decoded.purpose !== 'step_up' ||
+        decoded.sub !== req.user.userId ||
+        decoded.sid !== req.user.sessionId ||
+        !decoded.jti
+      ) {
+        return res.status(401).json({
+          success: false,
+          message: 'Step-up token is not valid for this session'
+        });
+      }
+
+      // A token must only authorize its intended operation.
+      if (decoded.scope !== requiredScope) {
+        return res.status(403).json({
+          success: false,
+          message: 'Step-up token does not authorize this operation'
+        });
+      }
+
+      // Hash the token; the raw token is never stored in the database.
+      const tokenHash = crypto
+        .createHash('sha256')
+        .update(stepUpToken)
+        .digest('hex');
+
+      // Atomically consume the token.
+      // Only one request can successfully update an unused token.
+      const result = await pool.query(
+        `
+        UPDATE auth.step_up_tokens
+        SET used_at = NOW()
+        WHERE token_hash = $1
+          AND user_id = $2
+          AND session_id = $3
+          AND scope = $4
+          AND used_at IS NULL
+          AND expires_at > NOW()
+        RETURNING token_hash
+        `,
+        [
+          tokenHash,
+          req.user.userId,
+          req.user.sessionId,
+          requiredScope
+        ]
+      );
+
+      if (result.rowCount !== 1) {
+        return res.status(401).json({
+          success: false,
+          message: 'Step-up token is expired, invalid, or already used'
+        });
+      }
+
+      req.stepUp = {
+        scope: requiredScope,
+        tokenId: decoded.jti
+      };
+
+      return next();
+    } catch (error) {
+      return next(error);
+    }
+  };
+};
+
 module.exports = {
   authenticate,
   authenticateMfaEnrollment,
-  requireRole
+  requireRole,
+  requireStepUp
 };

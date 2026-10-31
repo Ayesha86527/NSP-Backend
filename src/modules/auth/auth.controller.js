@@ -299,6 +299,63 @@ const backupCodeStatus = async (req, res, next) => {
 };
 
 // ======================================================
+// STEP-UP MFA AUTHENTICATION (B1)
+// Requires ordinary authenticated access.
+// ======================================================
+const stepUp = async (req, res, next) => {
+    try {
+        const { scope, mfaCode, backupCode } = req.body;
+
+        const userId = req.user?.userId;
+        const sessionId = req.user?.sessionId;
+
+        if (!userId || !sessionId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authenticated user session is required'
+            });
+        }
+
+        if (!scope) {
+            return res.status(400).json({
+                success: false,
+                message: 'Step-up scope is required'
+            });
+        }
+
+        const hasMfaCode =
+            typeof mfaCode === 'string' && mfaCode.trim().length > 0;
+
+        const hasBackupCode =
+            typeof backupCode === 'string' && backupCode.trim().length > 0;
+
+        if (hasMfaCode === hasBackupCode) {
+            return res.status(400).json({
+                success: false,
+                message: 'Provide exactly one MFA code or backup code'
+            });
+        }
+
+        const result = await authService.createStepUpToken({
+            userId,
+            sessionId,
+            scope,
+            mfaCode,
+            backupCode,
+            ipAddress: req.ip
+        });
+
+        if (!result.success) {
+            return res.status(401).json(result);
+        }
+
+        return res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ======================================================
 // EXPORT CONTROLLERS
 // ======================================================
 module.exports = {
@@ -310,5 +367,6 @@ module.exports = {
     revokeSession,
     generateBackupCodes,
     verifyBackupCode,
-    backupCodeStatus
+    backupCodeStatus,
+    stepUp
 };

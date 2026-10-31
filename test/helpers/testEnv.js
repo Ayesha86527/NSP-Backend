@@ -72,16 +72,53 @@ const createFakeRedis = () => {
 
 /** Sign an access token exactly the way auth.middleware expects to verify it. */
 const jwt = require('jsonwebtoken');
+
 const signAccessToken = ({ userId, sessionId, tokenVersion = 0 }) =>
     jwt.sign({ sub: userId, sid: sessionId, tokenVersion }, privateKey, {
         algorithm: 'RS256',
         expiresIn: '15m'
     });
 
+/** Sign a step-up token for B1 middleware tests. */
+const signStepUpToken = ({
+    userId,
+    sessionId,
+    scope,
+    expiresIn = '5m'
+}) => {
+    const jti = crypto.randomUUID();
+
+    const token = jwt.sign(
+        {
+            sub: userId,
+            sid: sessionId,
+            scope,
+            purpose: 'step_up',
+            jti
+        },
+        privateKey,
+        {
+            algorithm: 'RS256',
+            expiresIn
+        }
+    );
+
+    const decoded = jwt.decode(token);
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    return {
+        token,
+        tokenHash,
+        jti,
+        expiresAt: new Date(decoded.exp * 1000)
+    };
+};
+
 module.exports = {
     ALLOWED_ORIGIN,
     TEST_CNIC,
     stubModule,
     createFakeRedis,
-    signAccessToken
+    signAccessToken,
+    signStepUpToken
 };

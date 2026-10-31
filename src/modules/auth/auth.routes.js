@@ -3,7 +3,8 @@ const authController = require('./auth.controller');
 
 const {
   authenticate,
-  authenticateMfaEnrollment
+  authenticateMfaEnrollment,
+  requireStepUp
 } = require('./auth.middleware');
 
 const router = express.Router();
@@ -45,6 +46,15 @@ router.get(
   '/backup-codes/status',
   authenticate,
   authController.backupCodeStatus
+);
+
+// B1: Step-up MFA authentication.
+// Requires a normal authenticated session.
+// The endpoint issues a single-use, 5-minute step-up token.
+router.post(
+  '/step-up',
+  authenticate,
+  authController.stepUp
 );
 
 module.exports = router;
