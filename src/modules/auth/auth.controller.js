@@ -356,6 +356,135 @@ const stepUp = async (req, res, next) => {
 };
 
 // ======================================================
+// B2: GET PROFILE
+// ======================================================
+const getProfile = async (req, res, next) => {
+    try {
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication is required'
+            });
+        }
+
+        const profile = await authService.getUserProfile(userId);
+
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'User profile not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            profile
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ======================================================
+// B2: PATCH PROFILE — PASSWORD ONLY
+// ======================================================
+const updateProfile = async (req, res, next) => {
+    try {
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication is required'
+            });
+        }
+
+        const allowedFields = ['currentPassword', 'newPassword'];
+        const suppliedFields = Object.keys(req.body || {});
+
+        if (
+            suppliedFields.length !== 2 ||
+            suppliedFields.some(field => !allowedFields.includes(field))
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: 'Only password changes are allowed in the profile'
+            });
+        }
+
+        const { currentPassword, newPassword } = req.body;
+
+        if (
+            typeof currentPassword !== 'string' ||
+            typeof newPassword !== 'string' ||
+            !currentPassword ||
+            !newPassword
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: 'Current password and new password are required'
+            });
+        }
+
+        const passwordByteLength = Buffer.byteLength(newPassword, 'utf8');
+
+        if (passwordByteLength < 12 || passwordByteLength > 72) {
+            return res.status(400).json({
+                success: false,
+                message: 'New password must be between 12 and 72 bytes long'
+            });
+        }
+
+        const result = await authService.updateUserProfilePassword(
+            userId,
+            currentPassword,
+            newPassword,
+            req.ip
+        );
+
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+
+        return res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ======================================================
+// B2: LIST OWN SESSIONS
+// ======================================================
+const getSessions = async (req, res, next) => {
+    try {
+        const userId = req.user?.userId;
+        const sessionId = req.user?.sessionId;
+
+        if (!userId || !sessionId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authenticated user session is required'
+            });
+        }
+
+        const sessions = await authService.getUserSessions(
+            userId,
+            sessionId
+        );
+
+        return res.status(200).json({
+            success: true,
+            count: sessions.length,
+            sessions
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ======================================================
 // EXPORT CONTROLLERS
 // ======================================================
 module.exports = {
@@ -368,5 +497,8 @@ module.exports = {
     generateBackupCodes,
     verifyBackupCode,
     backupCodeStatus,
-    stepUp
+    stepUp,
+    getProfile,
+    updateProfile,
+    getSessions
 };

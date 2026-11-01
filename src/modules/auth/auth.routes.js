@@ -57,4 +57,23 @@ router.post(
   authController.stepUp
 );
 
+// B2: User profile and session management
+router.get(
+  '/profile',
+  authenticate,
+  authController.getProfile
+);
+
+router.patch(
+  '/profile',
+  authenticate,
+  authController.updateProfile
+);
+
+router.get(
+  '/sessions',
+  authenticate,
+  authController.getSessions
+);
+
 module.exports = router;

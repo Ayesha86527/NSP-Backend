@@ -14,8 +14,14 @@ const {
   findUserByEmail,
   findUserForMfa,
   findSessionByRefreshTokenHash,
+  findRefreshTokenHistory,
   findUserById,
+  findUserPasswordById,
+  findUserProfileById,
+  updatePasswordAndRevokeSessions,
+  listUserSessions,
   revokeSession,
+  revokeSessionFamily,
   rotateRefreshToken,
   recordFailedLogin,
   resetFailedLoginAttempts,
@@ -61,50 +67,6 @@ const logAuditSafely = async ({
 // ======================================================
 // MFA SECRET ENCRYPTION / DECRYPTION
 // ======================================================
-// const encryptMfaSecret = secret => {
-//   const keyHex = process.env.MFA_ENCRYPTION_KEY;
-
-//   if (!keyHex || !/^[0-9a-fA-F]{64}$/.test(keyHex)) {
-//     throw new Error(
-//       'MFA_ENCRYPTION_KEY must be 32 bytes represented as 64 hex characters'
-//     );
-//   }
-
-//   const key = Buffer.from(keyHex, 'hex');
-//   const iv = crypto.randomBytes(12);
-//   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-
-//   const encrypted = Buffer.concat([
-//     cipher.update(secret, 'utf8'),
-//     cipher.final()
-//   ]);
-
-//   const tag = cipher.getAuthTag();
-
-//   return `${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`;
-// };
-
-/*
- * Create a new MFA secret and its encrypted database representation.
- * The plaintext secret and setup URI must only be returned to an
- * appropriately authorized user during MFA enrollment.
- */
-// const createEncryptedMfaSecret = () => {
-//   const secret = generateSecret();
-
-//   const otpauthUrl = generateURI({
-//     issuer: 'NSP',
-//     label: 'NSP MFA',
-//     secret
-//   });
-
-//   return {
-//     secret,
-//     encryptedMfaSecret: encryptMfaSecret(secret),
-//     otpauthUrl
-//   };
-// };
-
 const decryptMfaSecret = encryptedSecret => {
   if (!encryptedSecret) {
     throw new Error('MFA secret is missing');
@@ -287,8 +249,6 @@ const login = async (
     return { success: false, message: 'Invalid email or password' };
   }
 
-  // Load security flags directly from the database instead of relying
-  // on findUserByEmail to return newly added columns.
   const user = await getSecurityUser(foundUser.user_id);
 
   if (!user) {
@@ -990,10 +950,31 @@ const refreshAccessToken = async (
     }
 
     const hash = hashRefreshToken(refreshToken);
+
     const session = await findSessionByRefreshTokenHash(hash);
 
+    // Token is not current: check whether it was previously rotated.
+    if (!session) {
+      const history = await findRefreshTokenHistory(hash);
+
+      if (history) {
+        await revokeSessionFamily(history.session_id);
+
+        await logAuditSafely({
+          userId: history.user_id,
+          eventType: 'AUTH_REFRESH_TOKEN_REUSE_DETECTED',
+          ipAddress,
+          details: {
+            sessionId: history.session_id,
+            action: 'SESSION_FAMILY_REVOKED'
+          }
+        });
+      }
+
+      throw new Error('Invalid or expired refresh token');
+    }
+
     if (
-      !session ||
       session.revoked ||
       new Date(session.expires_at) <= new Date()
     ) {
@@ -1019,9 +1000,6 @@ const refreshAccessToken = async (
       ipAddress
     );
 
-    // Phase 1 Device Fingerprint Validation (FR-AUTH-04)
-    // If session was bound to a fingerprint and incoming differs, log anomaly
-    // but do not terminate/reject session (non-disruptive Phase 1).
     if (
       session.device_fingerprint &&
       session.device_fingerprint !== resolvedFingerprint
@@ -1042,7 +1020,9 @@ const refreshAccessToken = async (
 
     const newRefreshToken = makeRefreshToken();
     const newHash = hashRefreshToken(newRefreshToken);
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(
+      Date.now() + 7 * 24 * 60 * 60 * 1000
+    );
 
     const rotated = await rotateRefreshToken(
       session.session_id,
@@ -1054,6 +1034,24 @@ const refreshAccessToken = async (
     );
 
     if (!rotated) {
+      // Another concurrent request may have rotated this token.
+      const history = await findRefreshTokenHistory(hash);
+
+      if (history) {
+        await revokeSessionFamily(history.session_id);
+
+        await logAuditSafely({
+          userId: history.user_id,
+          eventType: 'AUTH_REFRESH_TOKEN_REUSE_DETECTED',
+          ipAddress,
+          details: {
+            sessionId: history.session_id,
+            action: 'SESSION_FAMILY_REVOKED',
+            reason: 'CONCURRENT_REFRESH'
+          }
+        });
+      }
+
       throw new Error('Refresh token rotation failed');
     }
 
@@ -1197,6 +1195,103 @@ const revokeUserSession = async (
 };
 
 // ======================================================
+// B2: GET USER PROFILE
+// ======================================================
+const getUserProfile = async (userId) => {
+  return findUserProfileById(userId);
+};
+
+// ======================================================
+// B2: UPDATE PROFILE — PASSWORD ONLY
+// ======================================================
+const updateUserProfilePassword = async (
+  userId,
+  currentPassword,
+  newPassword,
+  ipAddress
+) => {
+  const user = await findUserPasswordById(userId);
+
+  if (!user) {
+    return {
+      success: false,
+      message: 'User not found'
+    };
+  }
+
+  const currentPasswordMatches = await bcrypt.compare(
+    currentPassword,
+    user.password_hash
+  );
+
+  if (!currentPasswordMatches) {
+    await logAuditSafely({
+      userId,
+      eventType: 'AUTH_PASSWORD_CHANGE_FAILED',
+      email: user.email,
+      ipAddress,
+      details: { reason: 'INVALID_CURRENT_PASSWORD' }
+    });
+
+    return {
+      success: false,
+      message: 'Current password is incorrect'
+    };
+  }
+
+  const samePassword = await bcrypt.compare(
+    newPassword,
+    user.password_hash
+  );
+
+  if (samePassword) {
+    return {
+      success: false,
+      message: 'New password must be different from the current password'
+    };
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+
+  const updatedUser = await updatePasswordAndRevokeSessions(
+    userId,
+    passwordHash
+  );
+
+  if (!updatedUser) {
+    return {
+      success: false,
+      message: 'Unable to update password'
+    };
+  }
+
+  await logAuditSafely({
+    userId,
+    eventType: 'AUTH_PASSWORD_CHANGED',
+    email: updatedUser.email,
+    ipAddress,
+    details: { sessionsRevoked: true }
+  });
+
+  return {
+    success: true,
+    message: 'Password updated successfully. Please log in again.'
+  };
+};
+
+// ======================================================
+// B2: LIST AUTHENTICATED USER'S SESSIONS
+// ======================================================
+const getUserSessions = async (userId, currentSessionId) => {
+  const sessions = await listUserSessions(userId);
+
+  return sessions.map(session => ({
+    ...session,
+    is_current: session.session_id === currentSessionId
+  }));
+};
+
+// ======================================================
 // EXPORTS
 // ======================================================
 module.exports = {
@@ -1210,5 +1305,8 @@ module.exports = {
   startMfaEnrollment,
   confirmMfaEnrollment,
   createEncryptedMfaSecret,
-  createStepUpToken
+  createStepUpToken,
+  getUserProfile,
+  updateUserProfilePassword,
+  getUserSessions
 };
