@@ -13,6 +13,13 @@ router.get('/audit-logs', controller.getAuditLogs);
 router.get('/sessions', controller.getSessions);
 router.post('/sessions/:sessionId/revoke', controller.revokeSession);
 
+// Device management
+router.post('/devices', controller.registerDevice);
+router.get('/devices', controller.listDevices);
+router.get('/devices/health', controller.getDeviceHealth);
+router.post('/devices/lockdown', controller.setHubLockdown);
+router.post('/devices/:deviceId/revoke', controller.revokeDevice);
+
 // New account-management endpoints
 router.post('/users', controller.createUser);
 router.post('/users/:userId/lock', controller.lockUser);

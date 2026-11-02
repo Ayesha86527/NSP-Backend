@@ -192,6 +192,187 @@ const resolveFingerprint = (deviceFingerprint, ipAddress = null) => {
     .digest('hex');
 };
 
+// ======================================================
+// B3: AUTHORIZED DEVICE CHECK
+// ======================================================
+const authorizeHubDevice = async ({
+  user,
+  ipAddress = null,
+  deviceFingerprint = null,
+  deviceCredential = null,
+  action = 'LOGIN'
+}) => {
+  if (!user) {
+    return {
+      allowed: false,
+      statusCode: 403,
+      message: 'Account unavailable.'
+    };
+  }
+
+  // Super Admin accounts are not assigned to a testing hub.
+  if (user.role === 'SUPER_ADMIN') {
+    return { allowed: true, reason: 'SUPER_ADMIN_EXEMPT' };
+  }
+
+  const mode = String(
+    process.env.DEVICE_ENFORCEMENT || 'audit'
+  ).trim().toLowerCase();
+
+  if (!['audit', 'warn', 'enforce'].includes(mode)) {
+    throw new Error('Invalid DEVICE_ENFORCEMENT configuration');
+  }
+
+  const hubLocationId = user.hub_location_id;
+  const fingerprint = resolveFingerprint(
+    deviceFingerprint,
+    ipAddress
+  );
+
+  const credentialHash =
+    typeof deviceCredential === 'string' &&
+    deviceCredential.trim().length > 0
+      ? crypto
+          .createHash('sha256')
+          .update(deviceCredential.trim())
+          .digest('hex')
+      : null;
+
+  // Check whether the hub is locked down.
+  const lockdown = await pool.query(
+    `SELECT is_locked
+       FROM auth.hub_device_lockdowns
+      WHERE hub_location_id = $1`,
+    [hubLocationId]
+  );
+
+  if (lockdown.rows[0]?.is_locked === true) {
+    await logAuditSafely({
+      userId: user.user_id,
+      eventType: 'AUTH_DEVICE_BLOCKED',
+      email: user.email,
+      ipAddress,
+      details: {
+        reason: 'HUB_LOCKDOWN',
+        hubLocationId,
+        action
+      }
+    });
+
+    return {
+      allowed: false,
+      statusCode: 403,
+      message: 'Access from this hub is currently locked down.'
+    };
+  }
+
+  // Find a device using its fingerprint or credential hash.
+  const deviceResult = await pool.query(
+    `SELECT device_id,
+            device_fingerprint,
+            device_credential_hash,
+            edr_status,
+            revoked
+       FROM auth.authorized_devices
+      WHERE hub_location_id = $1
+        AND (
+          device_fingerprint = $2
+          OR (
+            $3::VARCHAR IS NOT NULL
+            AND device_credential_hash = $3
+          )
+        )`,
+    [hubLocationId, fingerprint, credentialHash]
+  );
+
+  const fingerprintDevice =
+    deviceResult.rows.find(
+      device => device.device_fingerprint === fingerprint
+    ) || null;
+
+  const credentialDevice = credentialHash
+    ? deviceResult.rows.find(
+        device => device.device_credential_hash === credentialHash
+      ) || null
+    : null;
+
+  // Revocation always blocks, regardless of enforcement mode.
+  if (
+    fingerprintDevice?.revoked === true ||
+    credentialDevice?.revoked === true
+  ) {
+    await logAuditSafely({
+      userId: user.user_id,
+      eventType: 'AUTH_DEVICE_BLOCKED',
+      email: user.email,
+      ipAddress,
+      details: {
+        reason: 'DEVICE_REVOKED',
+        hubLocationId,
+        action
+      }
+    });
+
+    return {
+      allowed: false,
+      statusCode: 403,
+      message: 'This device has been revoked.'
+    };
+  }
+
+  // Both identifiers must refer to the same registered device.
+  const authorized =
+    Boolean(fingerprintDevice) &&
+    Boolean(credentialDevice) &&
+    fingerprintDevice.device_id === credentialDevice.device_id;
+
+  const edrCompliant =
+    fingerprintDevice?.edr_status === 'compliant';
+
+  if (authorized && edrCompliant) {
+    return {
+      allowed: true,
+      reason: 'AUTHORIZED_DEVICE',
+      deviceId: fingerprintDevice.device_id
+    };
+  }
+
+  const reason = !fingerprintDevice
+    ? 'DEVICE_NOT_REGISTERED'
+    : !credentialDevice
+      ? 'INVALID_DEVICE_CREDENTIAL'
+      : !authorized
+        ? 'DEVICE_FINGERPRINT_MISMATCH'
+        : 'EDR_NOT_COMPLIANT';
+
+  await logAuditSafely({
+    userId: user.user_id,
+    eventType: 'AUTH_DEVICE_AUTHORIZATION_WARNING',
+    email: user.email,
+    ipAddress,
+    details: {
+      reason,
+      mode,
+      hubLocationId,
+      action
+    }
+  });
+
+  if (mode === 'enforce') {
+    return {
+      allowed: false,
+      statusCode: 403,
+      message: 'This device is not authorized for this hub.'
+    };
+  }
+
+  return {
+    allowed: true,
+    reason,
+    warning: mode === 'warn'
+  };
+};
+
 /**
  * Insert a new session row and return fresh token pair.
  * deviceFingerprint is stored so refresh-token rotation can
@@ -234,7 +415,8 @@ const login = async (
   email,
   password,
   ipAddress = null,
-  deviceFingerprint = null
+  deviceFingerprint = null,
+  deviceCredential = null
 ) => {
   const foundUser = await findUserByEmail(email);
 
@@ -488,7 +670,8 @@ const verifyMfa = async (
   email,
   mfaCode,
   ipAddress = null,
-  deviceFingerprint = null
+  deviceFingerprint = null,
+  deviceCredential = null
 ) => {
   const found = await findUserForMfa(email);
 
@@ -560,6 +743,22 @@ const verifyMfa = async (
         failed && failed.failed_mfa_attempts >= 5
           ? 'MFA locked for 15 minutes due to too many failed attempts.'
           : 'Invalid MFA code'
+    };
+  }
+
+  const deviceCheck = await authorizeHubDevice({
+    user,
+    ipAddress,
+    deviceFingerprint,
+    deviceCredential,
+    action: 'LOGIN_TOTP'
+  });
+
+  if (!deviceCheck.allowed) {
+    return {
+      success: false,
+      message: deviceCheck.message,
+      statusCode: deviceCheck.statusCode || 403
     };
   }
 
@@ -647,7 +846,8 @@ const verifyBackupCode = async (
   password,
   backupCode,
   ipAddress = null,
-  deviceFingerprint = null
+  deviceFingerprint = null,
+  deviceCredential = null
 ) => {
   const found = await findUserByEmail(email);
 
@@ -680,6 +880,22 @@ const verifyBackupCode = async (
     return {
       success: false,
       message: 'Invalid credentials or backup code'
+    };
+  }
+
+  const deviceCheck = await authorizeHubDevice({
+    user,
+    ipAddress,
+    deviceFingerprint,
+    deviceCredential,
+    action: 'LOGIN_BACKUP_CODE'
+  });
+
+  if (!deviceCheck.allowed) {
+    return {
+      success: false,
+      message: deviceCheck.message,
+      statusCode: deviceCheck.statusCode || 403
     };
   }
 
@@ -937,7 +1153,8 @@ const getUserBackupCodeStatus = async userId => {
 const refreshAccessToken = async (
   refreshToken,
   ipAddress = null,
-  deviceFingerprint = null
+  deviceFingerprint = null,
+  deviceCredential = null
 ) => {
   let auditUser = null;
 
@@ -994,6 +1211,21 @@ const refreshAccessToken = async (
     }
 
     auditUser = user;
+
+    const deviceCheck = await authorizeHubDevice({
+      user,
+      ipAddress,
+      deviceFingerprint,
+      deviceCredential,
+      action: 'REFRESH'
+    });
+
+    if (!deviceCheck.allowed) {
+      const deviceError = new Error(deviceCheck.message);
+      deviceError.statusCode = deviceCheck.statusCode || 403;
+      deviceError.code = 'DEVICE_AUTHORIZATION_DENIED';
+      throw deviceError;
+    }
 
     const resolvedFingerprint = resolveFingerprint(
       deviceFingerprint,
@@ -1089,6 +1321,10 @@ const refreshAccessToken = async (
         reason: 'INVALID_OR_EXPIRED_REFRESH_TOKEN'
       }
     });
+
+    if (error.code === 'DEVICE_AUTHORIZATION_DENIED') {
+      throw error;
+    }
 
     throw new Error('Invalid or expired refresh token');
   }
@@ -1292,9 +1528,47 @@ const getUserSessions = async (userId, currentSessionId) => {
 };
 
 // ======================================================
+// DEVICE HEARTBEAT (EDR STATUS UPDATE)
+// ======================================================
+async function updateDeviceHeartbeat(deviceId, edrStatus) {
+  const allowedStatuses = ['unknown', 'compliant', 'non_compliant'];
+
+  if (!allowedStatuses.includes(edrStatus)) {
+    const error = new Error('Invalid EDR status');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const result = await pool.query(
+    `UPDATE auth.authorized_devices
+     SET edr_status = $2,
+         last_heartbeat_at = NOW(),
+         updated_at = NOW()
+     WHERE device_id = $1
+       AND revoked = FALSE
+     RETURNING
+       device_id,
+       hub_location_id,
+       device_name,
+       edr_status,
+       last_heartbeat_at`,
+    [deviceId, edrStatus]
+  );
+
+  if (result.rowCount === 0) {
+    const error = new Error('Device not found or revoked');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  return result.rows[0];
+}
+
+// ======================================================
 // EXPORTS
 // ======================================================
 module.exports = {
+  authorizeHubDevice,
   login,
   verifyMfa,
   generateBackupCodes,
@@ -1308,5 +1582,6 @@ module.exports = {
   createStepUpToken,
   getUserProfile,
   updateUserProfilePassword,
-  getUserSessions
+  getUserSessions,
+  updateDeviceHeartbeat
 };

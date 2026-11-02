@@ -12,6 +12,17 @@ const MANAGED_ROLES = [
   'TRADE_TESTER'
 ];
 
+const DEVICE_ONLINE_THRESHOLD_SECONDS = Number(
+  process.env.DEVICE_ONLINE_THRESHOLD_SECONDS || 300
+);
+
+if (
+  !Number.isInteger(DEVICE_ONLINE_THRESHOLD_SECONDS) ||
+  DEVICE_ONLINE_THRESHOLD_SECONDS <= 0
+) {
+  throw new Error('Invalid DEVICE_ONLINE_THRESHOLD_SECONDS configuration');
+}
+
 const createError = (message, statusCode = 400) => {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -428,6 +439,244 @@ const resetMfa = async ({
 };
 
 // --------------------------------------------------
+// DEVICE MANAGEMENT
+// --------------------------------------------------
+
+const registerDevice = async ({
+  hubLocationId,
+  deviceName,
+  deviceFingerprint,
+  deviceCredentialHash,
+  adminUserId,
+  ipAddress
+}) => {
+  const parsedHubId = Number(hubLocationId);
+
+  if (
+    !Number.isInteger(parsedHubId) ||
+    parsedHubId < 1 ||
+    parsedHubId > 5
+  ) {
+    throw createError('hubLocationId must be between 1 and 5');
+  }
+
+  if (
+    typeof deviceName !== 'string' ||
+    !deviceName.trim() ||
+    deviceName.trim().length > 100
+  ) {
+    throw createError('Device name is required and must not exceed 100 characters');
+  }
+
+  if (
+    typeof deviceFingerprint !== 'string' ||
+    !deviceFingerprint.trim() ||
+    deviceFingerprint.trim().length > 255
+  ) {
+    throw createError('A valid device fingerprint is required');
+  }
+
+  if (
+    typeof deviceCredentialHash !== 'string' ||
+    !/^[a-f0-9]{64}$/i.test(deviceCredentialHash)
+  ) {
+    throw createError('A valid device credential hash is required');
+  }
+
+  let device;
+
+  try {
+    device = await model.registerAuthorizedDevice({
+      hubLocationId: parsedHubId,
+      deviceName: deviceName.trim(),
+      deviceFingerprint: deviceFingerprint.trim().toLowerCase(),
+      deviceCredentialHash
+    });
+  } catch (error) {
+    if (error.code === '23505') {
+      throw createError(
+        'A device with this fingerprint or credential is already registered',
+        409
+      );
+    }
+
+    throw error;
+  }
+
+  await auditAdminAction({
+    adminUserId,
+    eventType: 'SUPER_ADMIN_DEVICE_REGISTERED',
+    ipAddress,
+    details: {
+      deviceId: device.device_id,
+      hubLocationId: device.hub_location_id,
+      deviceName: device.device_name
+    }
+  });
+
+  return {
+    message: 'Device registered successfully',
+    device
+  };
+};
+
+const listDevices = async (filters = {}) => {
+  const limit = Math.min(
+    Math.max(Number(filters.limit) || 50, 1),
+    100
+  );
+
+  const offset = Math.max(
+    Number(filters.offset) || 0,
+    0
+  );
+
+  let hubLocationId = null;
+
+  if (filters.hubLocationId !== undefined) {
+    hubLocationId = Number(filters.hubLocationId);
+
+    if (
+      !Number.isInteger(hubLocationId) ||
+      hubLocationId < 1 ||
+      hubLocationId > 5
+    ) {
+      throw createError('hubLocationId must be between 1 and 5');
+    }
+  }
+
+  return model.listAuthorizedDevices({
+    hubLocationId,
+    limit,
+    offset
+  });
+};
+
+const revokeDevice = async ({
+  deviceId,
+  adminUserId,
+  ipAddress
+}) => {
+  if (
+    typeof deviceId !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deviceId)
+  ) {
+    throw createError('Invalid device ID format');
+  }
+
+  const device = await model.revokeAuthorizedDevice(deviceId);
+
+  if (!device) {
+    throw createError('Active device not found', 404);
+  }
+
+  await auditAdminAction({
+    adminUserId,
+    eventType: 'SUPER_ADMIN_DEVICE_REVOKED',
+    ipAddress,
+    details: {
+      deviceId: device.device_id,
+      hubLocationId: device.hub_location_id,
+      deviceName: device.device_name
+    }
+  });
+
+  return {
+    message: 'Device revoked and associated sessions invalidated',
+    device
+  };
+};
+
+const getDeviceHealth = async (hubLocationIdValue) => {
+  let hubLocationId = null;
+
+  if (
+    hubLocationIdValue !== undefined &&
+    hubLocationIdValue !== null &&
+    hubLocationIdValue !== ''
+  ) {
+    hubLocationId = Number(hubLocationIdValue);
+
+    if (
+      !Number.isInteger(hubLocationId) ||
+      hubLocationId < 1 ||
+      hubLocationId > 5
+    ) {
+      throw createError('hubLocationId must be between 1 and 5');
+    }
+  }
+
+  const devices = await model.getDeviceHealth(hubLocationId);
+
+  const devicesWithStatus = devices.map((device) => {
+    const lastHeartbeat = device.last_heartbeat_at
+      ? new Date(device.last_heartbeat_at).getTime()
+      : null;
+
+    const online =
+      lastHeartbeat !== null &&
+      Date.now() - lastHeartbeat <=
+        DEVICE_ONLINE_THRESHOLD_SECONDS * 1000;
+
+    return {
+      ...device,
+      status: online && !device.revoked ? 'online' : 'offline'
+    };
+  });
+
+  return devicesWithStatus;
+};
+
+// --------------------------------------------------
+// HUB DEVICE LOCKDOWN
+// --------------------------------------------------
+const setHubLockdown = async ({
+  hubLocationId,
+  isLocked,
+  adminUserId,
+  ipAddress
+}) => {
+  const parsedHubId = Number(hubLocationId);
+
+  if (
+    !Number.isInteger(parsedHubId) ||
+    parsedHubId < 1 ||
+    parsedHubId > 5
+  ) {
+    throw createError('hubLocationId must be between 1 and 5');
+  }
+
+  if (typeof isLocked !== 'boolean') {
+    throw createError('isLocked must be a boolean');
+  }
+
+  const lockdown = await model.setHubLockdown(
+    parsedHubId,
+    isLocked,
+    adminUserId
+  );
+
+  await auditAdminAction({
+    adminUserId,
+    eventType: isLocked
+      ? 'SUPER_ADMIN_HUB_LOCKDOWN_ENABLED'
+      : 'SUPER_ADMIN_HUB_LOCKDOWN_DISABLED',
+    ipAddress,
+    details: {
+      hubLocationId: parsedHubId,
+      isLocked
+    }
+  });
+
+  return {
+    message: isLocked
+      ? 'Hub lockdown enabled'
+      : 'Hub lockdown disabled',
+    lockdown
+  };
+};
+
+// --------------------------------------------------
 // EXPORTS
 // --------------------------------------------------
 module.exports = {
@@ -440,5 +689,10 @@ module.exports = {
   createUser,
   lockUser,
   unlockUser,
-  resetMfa
+  resetMfa,
+  registerDevice,
+  listDevices,
+  revokeDevice,
+  getDeviceHealth,
+  setHubLockdown
 };

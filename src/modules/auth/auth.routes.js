@@ -4,6 +4,7 @@ const authController = require('./auth.controller');
 const {
   authenticate,
   authenticateMfaEnrollment,
+  authenticateDevice,
   requireStepUp
 } = require('./auth.middleware');
 
@@ -74,6 +75,16 @@ router.get(
   '/sessions',
   authenticate,
   authController.getSessions
+);
+
+// Device health heartbeat.
+// Uses device credential authentication, not the user JWT.
+// Intentionally allowed during hub lockdown: it reports device
+// health and does not authorize a user to log in.
+router.post(
+  '/device/heartbeat',
+  authenticateDevice,
+  authController.heartbeat
 );
 
 module.exports = router;
