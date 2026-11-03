@@ -1,4 +1,3 @@
-
 const crypto = require('crypto');
 const { requireRole } = require('./role.middleware');
 const jwt = require('jsonwebtoken');
@@ -38,7 +37,7 @@ const authenticate = async (req, res, next) => {
 
     const result = await pool.query(
       `SELECT user_id, email, role, hub_location_id,
-              admin_locked, token_version, is_mfa_active,
+              is_active, admin_locked, token_version, is_mfa_active,
               mfa_enrollment_pending
          FROM auth.users
         WHERE user_id = $1`,
@@ -49,6 +48,7 @@ const authenticate = async (req, res, next) => {
 
     if (
       !user ||
+      !user.is_active ||
       user.admin_locked ||
       Number(user.token_version) !== decoded.tokenVersion ||
       !user.is_mfa_active ||
@@ -249,7 +249,7 @@ const authenticateMfaEnrollment = async (req, res, next) => {
 
     const result = await pool.query(
       `SELECT user_id, email, role, hub_location_id,
-              admin_locked, token_version, is_mfa_active,
+              is_active, admin_locked, token_version, is_mfa_active,
               mfa_enrollment_pending
          FROM auth.users
         WHERE user_id = $1`,
@@ -260,6 +260,7 @@ const authenticateMfaEnrollment = async (req, res, next) => {
 
     if (
       !user ||
+      !user.is_active ||
       user.admin_locked ||
       Number(user.token_version) !== decoded.tokenVersion ||
       user.is_mfa_active ||
@@ -305,7 +306,10 @@ const requireStepUp = (requiredScope) => {
     'REVOKE_CREDENTIAL',
     'REGISTER_HUB_KEY',
     'CHANGE_ROLE',
-    'RESET_MFA'
+    'RESET_MFA',
+    'REASSIGN_HUB',
+    'MANAGE_ACCOUNT_STATUS',
+    'ADMIN_PASSWORD_RESET'
   ];
 
   // Validate the scope when the route is configured.

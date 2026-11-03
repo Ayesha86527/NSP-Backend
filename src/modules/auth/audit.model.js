@@ -5,9 +5,10 @@ const createAuditLog = async ({
     eventType,
     email = null,
     ipAddress = null,
-    details = null
+    details = null,
+    client = pool
 }) => {
-    const result = await pool.query(
+    const result = await client.query(
         `
         INSERT INTO auth.audit_logs (
             user_id,
@@ -16,13 +17,7 @@ const createAuditLog = async ({
             ip_address,
             details
         )
-        VALUES (
-            $1,
-            $2,
-            $3,
-            $4,
-            $5
-        )
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING
             audit_id,
             user_id,
@@ -32,13 +27,7 @@ const createAuditLog = async ({
             details,
             created_at
         `,
-        [
-            userId,
-            eventType,
-            email,
-            ipAddress,
-            details
-        ]
+        [userId, eventType, email, ipAddress, details]
     );
 
     return result.rows[0];

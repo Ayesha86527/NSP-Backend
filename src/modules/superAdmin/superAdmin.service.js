@@ -677,6 +677,209 @@ const setHubLockdown = async ({
 };
 
 // --------------------------------------------------
+// B4: CHANGE USER ROLE
+// --------------------------------------------------
+
+const changeUserRole = async ({
+  userId,
+  role,
+  hubLocationId,
+  adminUserId,
+  ipAddress
+}) => {
+  if (!userId) {
+    throw createError('User ID is required');
+  }
+
+  if (!ALLOWED_ROLES.includes(role)) {
+    throw createError('Invalid user role');
+  }
+
+  let parsedHubId = null;
+
+  if (role !== 'SUPER_ADMIN') {
+    parsedHubId = Number(hubLocationId);
+
+    if (
+      !Number.isInteger(parsedHubId) ||
+      parsedHubId < 1 ||
+      parsedHubId > 5
+    ) {
+      throw createError('A valid hubLocationId between 1 and 5 is required');
+    }
+  } else if (hubLocationId !== undefined && hubLocationId !== null && hubLocationId !== '') {
+    parsedHubId = Number(hubLocationId);
+
+    if (
+      !Number.isInteger(parsedHubId) ||
+      parsedHubId < 1 ||
+      parsedHubId > 5
+    ) {
+      throw createError('hubLocationId must be between 1 and 5 or null');
+    }
+  }
+
+  if (userId === adminUserId) {
+    throw createError('You cannot change your own role', 403);
+  }
+
+  const result = await model.changeUserRole(
+    userId,
+    role,
+    parsedHubId,
+    adminUserId,
+    ipAddress
+  );
+
+  if (!result) {
+    throw createError('User not found', 404);
+  }
+
+  return {
+    message: 'User role updated successfully. Existing sessions were revoked.',
+    user: result.user
+  };
+};
+
+// --------------------------------------------------
+// B4: REASSIGN USER HUB
+// --------------------------------------------------
+
+const reassignUserHub = async ({
+  userId,
+  hubLocationId,
+  adminUserId,
+  ipAddress
+}) => {
+  if (!userId) {
+    throw createError('User ID is required');
+  }
+
+  const parsedHubId = Number(hubLocationId);
+
+  if (
+    !Number.isInteger(parsedHubId) ||
+    parsedHubId < 1 ||
+    parsedHubId > 5
+  ) {
+    throw createError('hubLocationId must be between 1 and 5');
+  }
+
+  const target = await model.getSecurityUserById(userId);
+
+  if (!target) {
+    throw createError('User not found', 404);
+  }
+
+  if (!['TRADE_TESTER', 'CENTER_SUPERINTENDENT'].includes(target.role)) {
+    throw createError('Only hub-scoped users can be reassigned', 400);
+  }
+
+  const user = await model.reassignUserHub(
+    userId,
+    parsedHubId,
+    adminUserId,
+    ipAddress
+  );
+
+  if (!user) {
+    throw createError('Hub reassignment could not be completed', 404);
+  }
+
+  return {
+    message: 'User hub reassigned successfully. Existing sessions were revoked.',
+    user
+  };
+};
+
+// --------------------------------------------------
+// B4: DEACTIVATE / REACTIVATE USER
+// --------------------------------------------------
+
+const setUserActiveStatus = async ({
+  userId,
+  isActive,
+  adminUserId,
+  ipAddress
+}) => {
+  if (!userId) {
+    throw createError('User ID is required');
+  }
+
+  if (typeof isActive !== 'boolean') {
+    throw createError('isActive must be a boolean');
+  }
+
+  if (userId === adminUserId && !isActive) {
+    throw createError('You cannot deactivate your own account', 403);
+  }
+
+  const result = await model.setUserActiveStatus(
+    userId,
+    isActive,
+    adminUserId,
+    ipAddress
+  );
+
+  if (!result) {
+    throw createError('User not found', 404);
+  }
+
+  return {
+    message: isActive
+      ? 'User account reactivated successfully'
+      : 'User account deactivated successfully',
+    user: result.user
+  };
+};
+
+// --------------------------------------------------
+// B4: ADMIN PASSWORD RESET
+// --------------------------------------------------
+
+const resetUserPassword = async ({
+  userId,
+  newPassword,
+  adminUserId,
+  ipAddress
+}) => {
+  if (!userId) {
+    throw createError('User ID is required');
+  }
+
+  if (
+    typeof newPassword !== 'string' ||
+    Buffer.byteLength(newPassword, 'utf8') < 12 ||
+    Buffer.byteLength(newPassword, 'utf8') > 72
+  ) {
+    throw createError('Password must be between 12 and 72 bytes long');
+  }
+
+  if (userId === adminUserId) {
+    throw createError(
+      'Use the normal password-change flow to change your own password',
+      403
+    );
+  }
+
+  const user = await model.resetUserPassword(
+    userId,
+    newPassword,
+    adminUserId,
+    ipAddress
+  );
+
+  if (!user) {
+    throw createError('User not found', 404);
+  }
+
+  return {
+    message: 'User password reset successfully. Existing sessions were revoked.',
+    user
+  };
+};
+
+// --------------------------------------------------
 // EXPORTS
 // --------------------------------------------------
 module.exports = {
@@ -694,5 +897,9 @@ module.exports = {
   listDevices,
   revokeDevice,
   getDeviceHealth,
-  setHubLockdown
+  setHubLockdown,
+  changeUserRole,
+  reassignUserHub,
+  setUserActiveStatus,
+  resetUserPassword
 };

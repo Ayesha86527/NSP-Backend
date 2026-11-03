@@ -1,6 +1,10 @@
 const express = require('express');
 const controller = require('./superAdmin.controller');
-const { authenticate, requireRole } = require('../auth/auth.middleware');
+const {
+  authenticate,
+  requireRole,
+  requireStepUp
+} = require('../auth/auth.middleware');
 
 const router = express.Router();
 
@@ -25,5 +29,30 @@ router.post('/users', controller.createUser);
 router.post('/users/:userId/lock', controller.lockUser);
 router.post('/users/:userId/unlock', controller.unlockUser);
 router.post('/users/:userId/reset-mfa', controller.resetMfa);
+
+// B4: User and role administration — every mutation requires step-up MFA.
+router.patch(
+  '/users/:userId/role',
+  requireStepUp('CHANGE_ROLE'),
+  controller.changeUserRole
+);
+
+router.patch(
+  '/users/:userId/hub',
+  requireStepUp('REASSIGN_HUB'),
+  controller.reassignUserHub
+);
+
+router.patch(
+  '/users/:userId/status',
+  requireStepUp('MANAGE_ACCOUNT_STATUS'),
+  controller.setUserActiveStatus
+);
+
+router.post(
+  '/users/:userId/reset-password',
+  requireStepUp('ADMIN_PASSWORD_RESET'),
+  controller.resetUserPassword
+);
 
 module.exports = router;

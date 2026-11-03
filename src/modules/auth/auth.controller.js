@@ -514,6 +514,71 @@ async function heartbeat(req, res, next) {
 }
 
 // ======================================================
+// B4: GET CURRENT USER PERMISSIONS
+// ======================================================
+const getPermissions = async (req, res, next) => {
+    try {
+        const { userId, role, hubLocationId } = req.user || {};
+
+        if (!userId || !role) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication is required'
+            });
+        }
+
+        const permissionsByRole = {
+            TRADE_TESTER: [
+                'candidate:create',
+                'candidate:read',
+                'assessment:create',
+                'assessment:update_draft'
+            ],
+
+            CENTER_SUPERINTENDENT: [
+                'candidate:read',
+                'assessment:read',
+                'assessment:approve',
+                'assessment:reject'
+            ],
+
+            SUPER_ADMIN: [
+                'system:monitor',
+                'users:read',
+                'users:create',
+                'users:manage',
+                'hubs:manage',
+                'sessions:manage',
+                'audit_logs:read',
+                'devices:manage',
+                'credentials:revoke'
+            ]
+        };
+
+        const permissions = permissionsByRole[role];
+
+        if (!permissions) {
+            return res.status(403).json({
+                success: false,
+                message: 'No permissions are configured for this role'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                userId,
+                role,
+                hubLocationId: hubLocationId ?? null,
+                permissions
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ======================================================
 // EXPORT CONTROLLERS
 // ======================================================
 module.exports = {
@@ -530,5 +595,6 @@ module.exports = {
     getProfile,
     updateProfile,
     getSessions,
-    heartbeat
+    heartbeat,
+    getPermissions
 };

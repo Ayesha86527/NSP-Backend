@@ -1,5 +1,6 @@
 const pool = require('../../config/db');
 const bcrypt = require('bcrypt');
+const { createAuditLog } = require('../auth/audit.model');
 
 // --------------------------------------------------
 // DASHBOARD
@@ -62,6 +63,7 @@ const listUsers = async ({
         email,
         role,
         hub_location_id,
+        is_active,
         is_mfa_active,
         mfa_enrollment_pending,
         admin_locked,
@@ -164,6 +166,7 @@ const getUserById = async (userId) => {
         email,
         role,
         hub_location_id,
+        is_active,
         is_mfa_active,
         mfa_enrollment_pending,
         admin_locked,
@@ -376,6 +379,7 @@ const getSecurityUserById = async (userId) => {
         role,
         hub_location_id,
         admin_locked,
+        is_active,
         token_version,
         is_mfa_active,
         mfa_enrollment_pending
@@ -622,6 +626,361 @@ const setHubLockdown = async (hubLocationId, isLocked, lockedBy) => {
 };
 
 // --------------------------------------------------
+// B4: CHANGE USER ROLE
+// --------------------------------------------------
+
+const changeUserRole = async (
+  userId, role, hubLocationId, adminUserId, ipAddress
+) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Serialize changes that could affect the last active Super Admin.
+    await client.query(
+      `SELECT pg_advisory_xact_lock(hashtext('nsp-super-admin-protection'))`
+    );
+
+    const targetResult = await client.query(
+      `
+        SELECT user_id, email, role, hub_location_id, is_active
+        FROM auth.users
+        WHERE user_id = $1
+        FOR UPDATE
+      `,
+      [userId]
+    );
+
+    const target = targetResult.rows[0];
+
+    if (!target) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    if (
+      target.role === 'SUPER_ADMIN' &&
+      role !== 'SUPER_ADMIN' &&
+      target.is_active
+    ) {
+      const countResult = await client.query(
+        `
+          SELECT COUNT(*)::int AS total
+          FROM auth.users
+          WHERE role = 'SUPER_ADMIN'
+            AND is_active = TRUE
+        `
+      );
+
+      if (countResult.rows[0].total <= 1) {
+        const error = new Error(
+          'The last active Super Admin cannot be demoted'
+        );
+        error.statusCode = 403;
+        throw error;
+      }
+    }
+
+    const result = await client.query(
+      `
+        UPDATE auth.users
+        SET
+          role = $2,
+          hub_location_id = $3,
+          token_version = token_version + 1
+        WHERE user_id = $1
+        RETURNING
+          user_id, email, role, hub_location_id,
+          is_active, admin_locked, token_version
+      `,
+      [userId, role, hubLocationId]
+    );
+
+    await client.query(
+      `
+        UPDATE auth.sessions
+        SET revoked = TRUE
+        WHERE user_id = $1 AND revoked = FALSE
+      `,
+      [userId]
+    );
+
+    await createAuditLog({
+      userId: adminUserId,
+      eventType: 'SUPER_ADMIN_USER_ROLE_CHANGED',
+      ipAddress,
+      details: {
+        targetUserId: result.rows[0].user_id,
+        previousRole: target.role,
+        newRole: result.rows[0].role,
+        previousHubLocationId: target.hub_location_id,
+        newHubLocationId: result.rows[0].hub_location_id
+      },
+      client
+    });
+
+    await client.query('COMMIT');
+    return { previous: target, user: result.rows[0] };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// --------------------------------------------------
+// B4: REASSIGN USER HUB
+// --------------------------------------------------
+
+const reassignUserHub = async (
+  userId, hubLocationId, adminUserId, ipAddress
+) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const previousResult = await client.query(
+      `SELECT hub_location_id FROM auth.users WHERE user_id = $1 FOR UPDATE`,
+      [userId]
+    );
+
+    const targetHubLocationId = previousResult.rows[0]?.hub_location_id;
+
+    if (targetHubLocationId === undefined) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    const result = await client.query(
+      `
+        UPDATE auth.users
+        SET
+          hub_location_id = $2,
+          token_version = token_version + 1
+        WHERE user_id = $1
+          AND role IN ('TRADE_TESTER', 'CENTER_SUPERINTENDENT')
+        RETURNING
+          user_id, email, role, hub_location_id,
+          is_active, token_version
+      `,
+      [userId, hubLocationId]
+    );
+
+    const user = result.rows[0];
+
+    if (!user) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    await client.query(
+      `
+        UPDATE auth.sessions
+        SET revoked = TRUE
+        WHERE user_id = $1 AND revoked = FALSE
+      `,
+      [userId]
+    );
+
+    await createAuditLog({
+      userId: adminUserId,
+      eventType: 'SUPER_ADMIN_USER_HUB_REASSIGNED',
+      ipAddress,
+      details: {
+        targetUserId: user.user_id,
+        targetRole: user.role,
+        previousHubLocationId: targetHubLocationId,
+        newHubLocationId: user.hub_location_id
+      },
+      client
+    });
+
+    await client.query('COMMIT');
+    return user;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// --------------------------------------------------
+// B4: DEACTIVATE / REACTIVATE USER
+// --------------------------------------------------
+
+const setUserActiveStatus = async (
+  userId, isActive, adminUserId, ipAddress
+) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    await client.query(
+      `SELECT pg_advisory_xact_lock(hashtext('nsp-super-admin-protection'))`
+    );
+
+    const targetResult = await client.query(
+      `
+        SELECT user_id, email, role, hub_location_id, is_active
+        FROM auth.users
+        WHERE user_id = $1
+        FOR UPDATE
+      `,
+      [userId]
+    );
+
+    const target = targetResult.rows[0];
+
+    if (!target) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    if (
+      target.role === 'SUPER_ADMIN' &&
+      target.is_active &&
+      !isActive
+    ) {
+      const countResult = await client.query(
+        `
+          SELECT COUNT(*)::int AS total
+          FROM auth.users
+          WHERE role = 'SUPER_ADMIN'
+            AND is_active = TRUE
+        `
+      );
+
+      if (countResult.rows[0].total <= 1) {
+        const error = new Error(
+          'The last active Super Admin cannot be deactivated'
+        );
+        error.statusCode = 403;
+        throw error;
+      }
+    }
+
+    const result = await client.query(
+      `
+        UPDATE auth.users
+        SET
+          is_active = $2,
+          token_version = token_version + 1
+        WHERE user_id = $1
+        RETURNING
+          user_id, email, role, hub_location_id,
+          is_active, token_version
+      `,
+      [userId, isActive]
+    );
+
+    // Revoke sessions on deactivation and on reactivation so
+    // the user must authenticate again after either transition.
+    await client.query(
+      `
+        UPDATE auth.sessions
+        SET revoked = TRUE
+        WHERE user_id = $1 AND revoked = FALSE
+      `,
+      [userId]
+    );
+
+    await createAuditLog({
+      userId: adminUserId,
+      eventType: isActive
+        ? 'SUPER_ADMIN_USER_REACTIVATED'
+        : 'SUPER_ADMIN_USER_DEACTIVATED',
+      ipAddress,
+      details: {
+        targetUserId: result.rows[0].user_id,
+        targetEmail: result.rows[0].email,
+        targetRole: result.rows[0].role,
+        previousIsActive: target.is_active,
+        newIsActive: result.rows[0].is_active
+      },
+      client
+    });
+
+    await client.query('COMMIT');
+    return { previous: target, user: result.rows[0] };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// --------------------------------------------------
+// B4: ADMIN PASSWORD RESET
+// --------------------------------------------------
+
+const resetUserPassword = async (
+  userId, newPassword, adminUserId, ipAddress
+) => {
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(
+      `
+        UPDATE auth.users
+        SET
+          password_hash = $2,
+          token_version = token_version + 1
+        WHERE user_id = $1
+        RETURNING
+          user_id, email, role, hub_location_id,
+          is_active, token_version
+      `,
+      [userId, passwordHash]
+    );
+
+    const user = result.rows[0];
+
+    if (!user) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    await client.query(
+      `
+        UPDATE auth.sessions
+        SET revoked = TRUE
+        WHERE user_id = $1 AND revoked = FALSE
+      `,
+      [userId]
+    );
+
+    await createAuditLog({
+      userId: adminUserId,
+      eventType: 'SUPER_ADMIN_USER_PASSWORD_RESET',
+      ipAddress,
+      details: {
+        targetUserId: user.user_id,
+        targetEmail: user.email,
+        targetRole: user.role
+      },
+      client
+    });
+
+    await client.query('COMMIT');
+    return user;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// --------------------------------------------------
 // EXPORTS
 // --------------------------------------------------
 
@@ -641,5 +1000,9 @@ module.exports = {
   listAuthorizedDevices,
   revokeAuthorizedDevice,
   getDeviceHealth,
-  setHubLockdown
+  setHubLockdown,
+  changeUserRole,
+  reassignUserHub,
+  setUserActiveStatus,
+  resetUserPassword
 };
