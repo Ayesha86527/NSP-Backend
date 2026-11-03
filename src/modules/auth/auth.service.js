@@ -140,7 +140,7 @@ const createAccessToken = (user, sessionId) => {
 const getSecurityUser = async userId => {
   const result = await pool.query(
     `SELECT user_id, email, role, hub_location_id,
-            password_hash, mfa_secret, is_mfa_active,
+            is_active, password_hash, mfa_secret, is_mfa_active,
             mfa_enrollment_pending, admin_locked,
             token_version, failed_login_attempts, locked_until,
             failed_mfa_attempts, mfa_locked_until
@@ -160,6 +160,8 @@ const isMfaLocked = user =>
   new Date(user.mfa_locked_until) > new Date();
 
 const isAdminLocked = user => user.admin_locked === true;
+
+const isAccountInactive = user => user.is_active === false;
 
 const makeRefreshToken = () => crypto.randomBytes(40).toString('hex');
 
@@ -437,18 +439,31 @@ const login = async (
     return { success: false, message: 'Invalid email or password' };
   }
 
-  if (isAdminLocked(user) || isTemporarilyLocked(user)) {
+  if (
+    isAccountInactive(user) ||
+    isAdminLocked(user) ||
+    isTemporarilyLocked(user)
+  ) {
     await logAuditSafely({
       userId: user.user_id,
       eventType: 'AUTH_LOGIN_BLOCKED',
       email: user.email,
       ipAddress,
       details: {
-        reason: isAdminLocked(user) ? 'ADMIN_LOCKED' : 'TEMPORARY_LOCKOUT'
+        reason: isAccountInactive(user)
+          ? 'ACCOUNT_INACTIVE'
+          : isAdminLocked(user)
+            ? 'ADMIN_LOCKED'
+            : 'TEMPORARY_LOCKOUT'
       }
     });
 
-    return { success: false, message: 'Account is locked' };
+    return {
+      success: false,
+      message: isAccountInactive(user)
+        ? 'Account is inactive'
+        : 'Account is locked'
+    };
   }
 
   const passwordMatches = await bcrypt.compare(
@@ -549,7 +564,12 @@ const login = async (
 const startMfaEnrollment = async (userId, ipAddress = null) => {
   const user = await getSecurityUser(userId);
 
-  if (!user || isAdminLocked(user) || isTemporarilyLocked(user)) {
+  if (
+    !user ||
+    isAccountInactive(user) ||
+    isAdminLocked(user) ||
+    isTemporarilyLocked(user)
+  ) {
     return { success: false, message: 'Account unavailable' };
   }
 
@@ -598,6 +618,7 @@ const confirmMfaEnrollment = async (
 
   if (
     !user ||
+    isAccountInactive(user) ||
     isAdminLocked(user) ||
     isTemporarilyLocked(user) ||
     !user.mfa_enrollment_pending
@@ -686,6 +707,7 @@ const verifyMfa = async (
 
   if (
     !user ||
+    isAccountInactive(user) ||
     isAdminLocked(user) ||
     isTemporarilyLocked(user) ||
     isMfaLocked(user) ||
@@ -862,6 +884,7 @@ const verifyBackupCode = async (
 
   if (
     !user ||
+    isAccountInactive(user) ||
     isAdminLocked(user) ||
     isTemporarilyLocked(user) ||
     !getAllowedAuthRole(user.role) ||
@@ -976,7 +999,10 @@ const createStepUpToken = async ({
     'REVOKE_CREDENTIAL',
     'REGISTER_HUB_KEY',
     'CHANGE_ROLE',
-    'RESET_MFA'
+    'RESET_MFA',
+    'REASSIGN_HUB',
+    'MANAGE_ACCOUNT_STATUS',
+    'ADMIN_PASSWORD_RESET'
   ];
 
   if (!allowedScopes.includes(scope)) {
@@ -1003,6 +1029,7 @@ const createStepUpToken = async ({
 
   if (
     !user ||
+    isAccountInactive(user) ||
     isAdminLocked(user) ||
     isTemporarilyLocked(user) ||
     isMfaLocked(user) ||
@@ -1202,6 +1229,7 @@ const refreshAccessToken = async (
 
     if (
       !user ||
+      isAccountInactive(user) ||
       isAdminLocked(user) ||
       isTemporarilyLocked(user) ||
       !user.is_mfa_active ||

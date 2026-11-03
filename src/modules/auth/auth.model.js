@@ -9,6 +9,7 @@ const findUserByEmail = async (email) => {
             password_hash,
             role,
             hub_location_id,
+            is_active,
             mfa_secret,
             is_mfa_active,
             created_at,
@@ -101,6 +102,7 @@ const findUserForMfa = async (email) => {
             email,
             role,
             hub_location_id,
+            is_active,
             mfa_secret,
             is_mfa_active,
             locked_until
@@ -158,7 +160,8 @@ const findUserById = async (userId) => {
             user_id,
             email,
             role,
-            hub_location_id
+            hub_location_id,
+            is_active
         FROM auth.users
         WHERE user_id = $1
         `,

@@ -344,6 +344,79 @@ const setHubLockdown = async (req, res, next) => {
 };
 
 // --------------------------------------------------
+// B4: CHANGE USER ROLE
+// --------------------------------------------------
+const changeUserRole = async (req, res, next) => {
+  try {
+    const data = await service.changeUserRole({
+      userId: req.params.userId,
+      role: req.body.role,
+      hubLocationId: req.body.hubLocationId,
+      adminUserId: req.user.userId || req.user.id,
+      ipAddress: req.ip
+    });
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// --------------------------------------------------
+// B4: REASSIGN USER HUB
+// --------------------------------------------------
+const reassignUserHub = async (req, res, next) => {
+  try {
+    const data = await service.reassignUserHub({
+      userId: req.params.userId,
+      hubLocationId: req.body.hubLocationId,
+      adminUserId: req.user.userId || req.user.id,
+      ipAddress: req.ip
+    });
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// --------------------------------------------------
+// B4: DEACTIVATE / REACTIVATE USER
+// --------------------------------------------------
+const setUserActiveStatus = async (req, res, next) => {
+  try {
+    const data = await service.setUserActiveStatus({
+      userId: req.params.userId,
+      isActive: req.body.isActive,
+      adminUserId: req.user.userId || req.user.id,
+      ipAddress: req.ip
+    });
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// --------------------------------------------------
+// B4: ADMIN PASSWORD RESET
+// --------------------------------------------------
+const resetUserPassword = async (req, res, next) => {
+  try {
+    const data = await service.resetUserPassword({
+      userId: req.params.userId,
+      newPassword: req.body.newPassword,
+      adminUserId: req.user.userId || req.user.id,
+      ipAddress: req.ip
+    });
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// --------------------------------------------------
 // EXPORTS
 // --------------------------------------------------
 module.exports = {
@@ -361,5 +434,9 @@ module.exports = {
   listDevices,
   revokeDevice,
   getDeviceHealth,
-  setHubLockdown
+  setHubLockdown,
+  changeUserRole,
+  reassignUserHub,
+  setUserActiveStatus,
+  resetUserPassword
 };

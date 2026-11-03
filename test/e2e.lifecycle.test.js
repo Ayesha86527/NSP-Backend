@@ -93,6 +93,7 @@ const makeActor = (role, hubLocationId, label) => {
         email: `${label}@nsp.test`,
         role,
         hub_location_id: hubLocationId,
+        is_active: true,
         admin_locked: false,
         token_version: 0,
         is_mfa_active: true,

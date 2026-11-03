@@ -58,6 +58,13 @@ router.post(
   authController.stepUp
 );
 
+// B4: Return permissions for the authenticated user.
+router.get(
+  '/permissions',
+  authenticate,
+  authController.getPermissions
+);
+
 // B2: User profile and session management
 router.get(
   '/profile',
