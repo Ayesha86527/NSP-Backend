@@ -8,6 +8,8 @@ const helmet = require('helmet');
 const cors = require('cors');
 
 const { processMintingQueue } = require('./modules/ledger/blockchain/relayer');
+const eventBus = require('./events/eventBus');
+const ledgerService = require('./modules/ledger/ledger.service');
 
 const authRoutes = require('./modules/auth/auth.routes');
 const candidateRoutes = require('./modules/candidate/candidate.routes');
@@ -106,9 +108,46 @@ app.use(errorHandler);
 
 let server;
 let mintingQueueTimer;
+let assessmentApprovedSubscribed = false;
+
+function registerAssessmentApprovedSubscriber() {
+    if (assessmentApprovedSubscribed) return;
+    assessmentApprovedSubscribed = true;
+
+    eventBus.on('assessment.approved', async (payload) => {
+        try {
+            const approver = {
+                userId: payload.superintendentUserId,
+                role: 'CENTER_SUPERINTENDENT',
+                hubLocationId: payload.hubId
+            };
+
+            const issued = await ledgerService.issueCredentialOnly(
+                {
+                    candidateId: payload.candidateId,
+                    credentialSubject: {
+                        skillName: payload.tradeCategory,
+                        issuer: 'National Skills Passport',
+                        grade: payload.grade,
+                        score: payload.score
+                    }
+                },
+                approver
+            );
+
+            await ledgerService.approveAndQueueCredential(issued.credential_id, approver);
+            console.log(`[LEDGER] Credential ${issued.credential_id} successfully queued for minting (assessment ${payload.assessmentId})`);
+        } catch (error) {
+            console.error(`[LEDGER] Failed to queue credential for assessment ${payload?.assessmentId}:`, error.message);
+        }
+    });
+}
 
 function startServer() {
     const PORT = Number(process.env.PORT || 3000);
+
+    // Register event subscriber for automated ledger queuing upon assessment approval
+    registerAssessmentApprovedSubscriber();
 
     server = app.listen(PORT, () => {
         console.log(`NSP backend listening on port ${PORT}`);
@@ -146,3 +185,4 @@ if (require.main === module) {
 
 module.exports = app;
 module.exports.startServer = startServer;
+module.exports.registerAssessmentApprovedSubscriber = registerAssessmentApprovedSubscriber;
