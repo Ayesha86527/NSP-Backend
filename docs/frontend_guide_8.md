@@ -1,31 +1,39 @@
-# NSP — Frontend Integration Guide #8
+# NSP — Final Frontend Integration Guide (Capstone: Post-Guide #7)
 
-**Audience:** Frontend teams (Trade Tester Portal, Center Superintendent Portal, Super Admin Portal, Public Verifier)  
-**Document Version:** 1.0.0 (Capstone Release)  
-**Supersedes:** Guide #7 — read this as a **delta and capstone guide**. Guides 1 through 7 remain active and authoritative for their respective domains. Guide 8 documents all recent backend security architectures, newly added endpoints, error handling contracts, and deployment integration matrices.
+**Audience:** All Frontend Engineering Teams (Trade Tester Portal, Center Superintendent Portal, Super Admin Portal, Public Verifier)  
+**Document Version:** 2.0.0 (Final Comprehensive Capstone)  
+**Context:** This is the **final, definitive frontend guide** covering all features, endpoints, and architectural changes merged after **Guide #7**. Guides 1 through 6 cover earlier modules (Enrolment, Scoring, Approvals, QR Verification, S3 uploads); Guide #7 covered basic Super Admin user provisioning and first-time MFA enrollment.  
 
----
-
-## 📋 Executive Summary of Recent Additions & Updates
-
-Since Guide #7, the backend has implemented major security features and API contracts across Track B Phases 1 & 2:
-
-1. **Step-Up MFA Authorization (B1 - `POST /api/auth/step-up`):** An elevated authorization system that issues short-lived (5-minute), single-use RS256 JWT tokens passed via the `x-step-up-token` header for high-security actions.
-2. **Self-Service User Profile Management (B2 - `GET /api/auth/profile`):** Authenticated users across all roles can view their safe profile metadata without exposing credential hashes.
-3. **Self-Service Password Rotation (B2 - `PATCH /api/auth/profile`):** Secure password update requiring validation of the current password, triggering real-time `token_version` invalidation across other active sessions.
-4. **Self-Service Active Sessions Explorer (B2 - `GET /api/auth/sessions`):** Real-time visibility into all active device sessions for the authenticated user, identifying `is_current: true`.
-5. **Refresh Token Reuse Detection & Family Revocation (B2):** Automatic mitigation of token replay and theft. Reusing an already-rotated refresh token instantly revokes the entire session family with audit logging (`AUTH_REFRESH_TOKEN_REUSE_DETECTED`).
-6. **60-Candidate Enrolment Hub Quota Enforcement (FR-CAND-01):** PostgreSQL advisory-locked hub capacity check returning structured HTTP `409 Conflict`.
-7. **Production Ledger Bridge Contract (`assessment.approved`):** Clarification on how Superintendent approvals automatically enqueue credentials for Polygon Amoy minting.
-8. **Final Deployment Matrix & Environment Variables:** Authoritative configuration reference for staging and AWS production deployment.
+This guide provides the complete specification for everything added since Guide #7:
+1. **Step-Up MFA Authorization Engine (B1)**
+2. **User Profile & Self-Service Password Rotation (B2)**
+3. **User Active Sessions Explorer & Termination (B2)**
+4. **Refresh Token Reuse Detection & Family Invalidation (B2)**
+5. **60-Candidate Enrolment Hub Quota Enforcement (FR-CAND-01)**
+6. **Device Authorization, Hardware Fingerprinting & Hub Lockdown (B3)**
+7. **Automated Assessment-to-Ledger Bridge & Minting Pipeline**
+8. **Production Environment Variables & Pre-Flight Checklist**
 
 ---
 
-## 1. Step-Up MFA Authorization Architecture (B1)
+## 📑 Summary of All Changes Since Guide #7
 
-Certain sensitive actions (e.g., approving an assessment, revoking credentials, resetting MFA) require re-verification of the user's secondary factor even if they already possess an active session.
+| Area | Guide #7 Status | Final Status (Now Active) |
+|---|---|---|
+| **High-Risk Elevation** | Password + TOTP only on login | **B1 Step-Up MFA:** Sensitive actions (approvals, revocations, MFA resets) require a 5-minute single-use `x-step-up-token`. |
+| **Self-Service Settings** | Mock UI in `SettingsScreen.tsx` | **B2 Profile & Sessions:** Real endpoints for `GET /profile`, `PATCH /profile` (password change with `token_version` invalidation), and `GET /sessions`. |
+| **Token Theft Protection** | Standard refresh token rotation | **B2 Token Reuse Detection:** Replay of an already-rotated token triggers instant revocation of the entire session family. |
+| **Hub Enrolment Capacity** | Unchecked in frontend | **FR-CAND-01 Quota:** Backend enforces 60-candidate limit via advisory locks; returns HTTP `409 Conflict`. |
+| **Hardware & Laptop Security** | Device fingerprint recorded only | **B3 Device Authorization & Lockdown:** Hardware credential verification, live device health monitoring, and one-click emergency Hub Lockdown. |
+| **Blockchain Minting Bridge** | Relayer polled empty queue | **Automated Handshake:** `assessment.approved` automatically creates VC credentials and enqueues them for Polygon Amoy minting. |
 
-### 1.1 Step-Up Workflow Sequence
+---
+
+## 1. Feature B1 — Step-Up MFA Authorization (`POST /api/auth/step-up`)
+
+Privileged actions require elevating session privileges via a fresh MFA verification challenge before execution.
+
+### 1.1 The Elevation Lifecycle
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -35,49 +43,39 @@ Certain sensitive actions (e.g., approving an assessment, revoking credentials, 
                                     │
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│ 2. Frontend Checks Action Policy or Backend Returns 401:               │
-│ {                                                                      │
-│   "success": false,                                                    │
-│   "message": "Step-up authentication token is required"                │
-│ }                                                                      │
+│ 2. Frontend prompts user for a fresh 6-digit TOTP code                 │
+│    (or 8-character backup code) via Challenge Modal.                   │
+│    Calls POST /api/auth/step-up                                        │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│ 3. Frontend Displays Step-Up Challenge Modal:                          │
-│ Prompts user for 6-digit TOTP code (or 8-character backup code)        │
-│ Calls POST /api/auth/step-up                                           │
+│ 3. Backend verifies code and issues single-use RS256 stepUpToken:      │
+│    200 OK: {                                                           │
+│      "success": true,                                                  │
+│      "stepUpToken": "<RS256 JWT, 5-min expiry, specific scope>",       │
+│      "scope": "APPROVE_ASSESSMENT",                                    │
+│      "expiresIn": 300                                                  │
+│    }                                                                   │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│ 4. Backend Verifies Code and Issues Single-Use Step-Up Token:          │
-│ Returns 200 OK:                                                        │
-│ {                                                                      │
-│   "success": true,                                                     │
-│   "stepUpToken": "<RS256 JWT, 5-min expiry, specific scope>",          │
-│   "scope": "APPROVE_ASSESSMENT",                                       │
-│   "expiresIn": 300                                                     │
-│ }                                                                      │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ 5. Frontend Retries Sensitive Action with Header:                      │
-│ POST /api/assessments/:id/approve                                      │
-│ Headers: {                                                             │
-│   "Authorization": "Bearer <accessToken>",                             │
-│   "x-step-up-token": "<stepUpToken>"                                   │
-│ }                                                                      │
-│ Backend verifies & consumes the single-use token (jti marked used).    │
+│ 4. Frontend Retries Sensitive Action with Header:                      │
+│    POST /api/assessments/:id/approve                                   │
+│    Headers: {                                                          │
+│      "Authorization": "Bearer <accessToken>",                          │
+│      "x-step-up-token": "<stepUpToken>"                                │
+│    }                                                                   │
+│    Backend validates scope & marks token JTI as used in DB.            │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 Step-Up Token Request (`POST /api/auth/step-up`)
+### 1.2 Requesting a Step-Up Token (`POST /api/auth/step-up`)
 
-* **Authentication:** Requires valid user session (`Bearer <accessToken>`).
-* **Header:** `Authorization: Bearer <accessToken>`
-* **Request Body:** Must provide `scope` and **either** `mfaCode` or `backupCode` (never both or neither).
+* **Auth:** Requires active user session (`Bearer <accessToken>`).
+* **Headers:** `Authorization: Bearer <accessToken>`
+* **Body:** Must provide `scope` and **either** `mfaCode` or `backupCode`.
 
 ```http
 POST /api/auth/step-up
@@ -91,7 +89,7 @@ Content-Type: application/json
 ```
 
 * **Supported Scopes:**
-  * `'APPROVE_ASSESSMENT'` — For Superintendent assessment approvals.
+  * `'APPROVE_ASSESSMENT'` — For Superintendent assessment approval.
   * `'REVOKE_CREDENTIAL'` — For credential revocations.
   * `'REGISTER_HUB_KEY'` — For cryptographic hub key registration.
   * `'CHANGE_ROLE'` — For staff role modifications.
@@ -102,32 +100,28 @@ Content-Type: application/json
 {
   "success": true,
   "message": "Step-up authentication successful",
-  "stepUpToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMyIsInNpZCI6InNlc3MtNDU2IiwicHVycG9zZSI6InN0ZXBfdXAiLCJzY29wZSI6IkFQUFJPVkVfQVNTRVNTTUVOVCIsImp0aSI6ImVjY2Y4NzFkLTY3ODgtNGU5My1iOGI4LWU2ZjQyMjRmMDAwYyIsImlhdCI6MTczMDU1MjQwMCwiZXhwIjoxNzMwNTUyNzAwfQ...",
+  "stepUpToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
   "scope": "APPROVE_ASSESSMENT",
   "expiresIn": 300
 }
 ```
 
-* **Error Responses:**
-  * `400 Bad Request`: `{ "success": false, "message": "Provide exactly one MFA code or backup code" }` or `{ "success": false, "message": "Valid scope is required" }`
-  * `401 Unauthorized`: `{ "success": false, "message": "Invalid MFA code" }` (or invalid backup code)
+* **Error Handling:**
+  * `400 Bad Request`: `{ "success": false, "message": "Provide exactly one MFA code or backup code" }`
+  * `401 Unauthorized`: `{ "success": false, "message": "Invalid MFA code" }`
   * `403 Forbidden`: `{ "success": false, "message": "Token scope does not authorize this action" }`
-  * `423 Locked`: `{ "success": false, "message": "Account temporarily locked due to too many failed MFA attempts. Try again in 15 minutes." }`
-
-> [!IMPORTANT]
-> **Single-Use Enforcement:** Each step-up token has a unique `jti` claim recorded in the database. When consumed by a protected route, it is marked `used = true`. Any attempt to replay the same step-up token will fail with `401 Unauthorized` (`"Step-up token has already been used"`).
+  * `423 Locked`: `{ "success": false, "message": "Account temporarily locked due to too many failed MFA attempts. Try again in 15 minutes." }` (triggers on 5 consecutive failures).
 
 ---
 
-## 2. User Profile & Password Management (B2)
+## 2. Feature B2 — Profile & Self-Service Password Management
 
-Located in `src/modules/auth/auth.routes.js`, all authenticated users can now manage their account profile and password independently.
+Enables self-service credential management in `SettingsScreen.tsx`.
 
-### 2.1 Get Current User Profile (`GET /api/auth/profile`)
+### 2.1 Fetch Current User Profile (`GET /api/auth/profile`)
 
-* **Authentication:** `Bearer <accessToken>`
+* **Auth:** `Bearer <accessToken>`
 * **Success Response (`200 OK`):**
-
 ```json
 {
   "success": true,
@@ -140,62 +134,33 @@ Located in `src/modules/auth/auth.routes.js`, all authenticated users can now ma
     "is_mfa_active": true,
     "mfa_enrollment_pending": false,
     "admin_locked": false,
-    "last_login": "2026-11-01T08:30:00.000Z",
+    "last_login": "2026-11-03T08:30:00.000Z",
     "created_at": "2026-01-15T10:00:00.000Z"
   }
 }
 ```
-*(Notice: Sensitive fields like `password_hash`, `mfa_secret`, and backup codes are strictly excluded).*
 
 ### 2.2 Change Password (`PATCH /api/auth/profile`)
 
-Used by users to rotate their own password from `SettingsScreen.tsx`.
-
-* **Authentication:** `Bearer <accessToken>`
-* **Request Body:** Must contain exactly `currentPassword` and `newPassword`.
-
-```http
-PATCH /api/auth/profile
-Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
-Content-Type: application/json
-
+* **Auth:** `Bearer <accessToken>`
+* **Body:** Must provide exactly `currentPassword` and `newPassword`.
+```json
 {
   "currentPassword": "OldPassword123!",
   "newPassword": "NewStrongPassword456!"
 }
 ```
-
-* **Validation Rules:**
-  * `newPassword` must be at least 8 characters.
-  * `newPassword` must differ from `currentPassword`.
-  * `currentPassword` must match the stored bcrypt hash.
-
-* **Success Response (`200 OK`):**
-```json
-{
-  "success": true,
-  "message": "Password updated successfully"
-}
-```
-
-* **Error Responses:**
-  * `400 Bad Request`: `{ "success": false, "message": "Only password changes are allowed in the profile" }` or `{ "success": false, "message": "New password must be at least 8 characters long" }` or `{ "success": false, "message": "New password cannot be the same as the current password" }`
-  * `401 Unauthorized`: `{ "success": false, "message": "Current password is incorrect" }`
-
-> [!NOTE]
-> Changing the password increments `token_version` on the user record in PostgreSQL. All other active sessions and access tokens for this user on other devices are immediately rendered invalid.
+* **Password Policy:** Minimum 8 characters; must differ from current password.
+* **Security Side-Effect:** Updating the password increments `token_version` in PostgreSQL, immediately terminating all existing sessions across other devices.
 
 ---
 
-## 3. User Self-Service Active Sessions Explorer (B2)
-
-Authenticated users can inspect all devices and active sessions tied to their account (`GET /api/auth/sessions`).
+## 3. Feature B2 — Active Sessions & Token Reuse Protection
 
 ### 3.1 List Active Sessions (`GET /api/auth/sessions`)
 
-* **Authentication:** `Bearer <accessToken>`
+* **Auth:** `Bearer <accessToken>`
 * **Success Response (`200 OK`):**
-
 ```json
 {
   "success": true,
@@ -205,9 +170,9 @@ Authenticated users can inspect all devices and active sessions tied to their ac
       "session_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
       "device_fingerprint": "dfp_9a7b3c2d1e4f",
       "ip_address": "203.128.22.14",
-      "created_at": "2026-11-01T08:00:00.000Z",
-      "last_active": "2026-11-01T09:15:00.000Z",
-      "expires_at": "2026-11-08T08:00:00.000Z",
+      "created_at": "2026-11-03T08:00:00.000Z",
+      "last_active": "2026-11-03T09:15:00.000Z",
+      "expires_at": "2026-11-10T08:00:00.000Z",
       "is_current": true
     },
     {
@@ -215,65 +180,42 @@ Authenticated users can inspect all devices and active sessions tied to their ac
       "device_fingerprint": "dfp_5f6e7d8c9b0a",
       "ip_address": "42.201.64.88",
       "created_at": "2026-10-30T14:22:00.000Z",
-      "last_active": "2026-10-31T18:40:00.000Z",
-      "expires_at": "2026-11-06T14:22:00.000Z",
+      "last_active": "2026-11-02T18:40:00.000Z",
+      "expires_at": "2026-11-09T14:22:00.000Z",
       "is_current": false
     }
   ]
 }
 ```
 
-* **Frontend UI Implementation:** In `DevicesScreen.tsx` or `SettingsScreen.tsx`, render each session card with an "Active Now" badge on the session matching `is_current === true`. Users can terminate their own non-current sessions using `POST /api/auth/revoke`.
+### 3.2 Refresh Token Reuse Detection & Interceptor Protocol
 
----
-
-## 4. Refresh Token Reuse Detection & Session Family Revocation
-
-To prevent credential replay and man-in-the-middle attacks, the backend now tracks refresh token lineages via `db/migrations/auth/004_refresh_token_reuse_detection.sql`.
-
-### 4.1 How It Works
-
-1. When `POST /api/auth/refresh` is called with a valid `refreshToken`, the backend:
-   - Rotates the refresh token (generates a new cryptographically secure token).
-   - Marks the old refresh token as `consumed = true`.
-   - Issues new `accessToken` and `refreshToken` pair.
-2. If an attacker intercepts and replays the **already consumed** old refresh token:
-   - The backend detects that a consumed token was presented.
-   - **Immediate Countermeasure:** The backend terminates the entire session family (`revoked = true`), bumps `token_version`, and logs an audit security event `AUTH_REFRESH_TOKEN_REUSE_DETECTED`.
-   - Returns HTTP `401 Unauthorized`.
-
-### 4.2 Frontend Interceptor Protocol
-
-Update the API client (`src/services/api.ts`) response interceptor to handle session family termination:
-
+If an attacker captures and replays an already-rotated refresh token:
+1. The backend detects the reuse attempt, marks the entire session family as compromised, and invalidates all associated tokens (`AUTH_REFRESH_TOKEN_REUSE_DETECTED`).
+2. Returns HTTP `401 Unauthorized`.
+3. **Frontend Action in `src/services/api.ts`:**
 ```typescript
-// src/services/api.ts interceptor
 if (response.status === 401) {
   const errorData = await response.clone().json().catch(() => ({}));
-
   if (
     errorData.message?.includes("Invalid or expired refresh token") ||
-    errorData.message?.includes("Session has been revoked") ||
-    errorData.code === "TOKEN_FAMILY_REVOKED"
+    errorData.message?.includes("Session has been revoked")
   ) {
-    // Session compromised or revoked: clear state and redirect to login
     authStore.clear();
-    window.location.href = "/login?reason=session_expired";
-    return;
+    window.location.href = "/login?reason=session_revoked";
   }
 }
 ```
 
 ---
 
-## 5. Hub Candidate Enrolment Quota (FR-CAND-01)
+## 4. FR-CAND-01 — 60-Candidate Enrolment Quota
 
-As required by TOR FR-CAND-01, each testing hub has a strict enrolment limit of **60 candidates**.
+Each testing hub has a strict maximum enrolment capacity of **60 candidates**.
 
-### 5.1 Enrolment Error Contract (`POST /api/candidates`)
+### 4.1 Quota Exceeded Response (`POST /api/candidates`)
 
 When attempting to enrol candidate #61 in a hub:
-
 * **HTTP Status:** `409 Conflict`
 * **Response Body:**
 ```json
@@ -284,175 +226,176 @@ When attempting to enrol candidate #61 in a hub:
 }
 ```
 
-### 5.2 Frontend UI Guidelines for `EnrollmentScreen.tsx`
+### 4.2 Frontend Integration in `EnrollmentScreen.tsx`
+* Catch `error.statusCode === 409` or `error.status === 409`.
+* Display a clear alert banner: *"Testing Hub Quota Reached: Maximum 60 candidates have already enrolled in this hub."*
+* Disable the submit button and prevent duplicate retries.
 
-1. **Catch HTTP 409 Specifically:**
-```typescript
-try {
-  await api.enrolCandidate(payload);
-  showToast("Candidate successfully enrolled", "success");
-} catch (error: any) {
-  if (error.statusCode === 409 || error.status === 409) {
-    setQuotaExceededModalOpen(true);
-    setErrorMessage("Testing Hub Quota Reached: Maximum 60 candidates have already enrolled in this hub.");
-    return;
-  }
-  showToast(error.message || "Failed to enrol candidate", "error");
+---
+
+## 5. Feature B3 — Device Authorization & Hub Lockdown
+
+This enterprise security module ensures that Trade Testers and Center Superintendents can only log in from pre-approved testing-hub laptops.
+
+### 5.1 Device Enforcement Modes (`DEVICE_ENFORCEMENT`)
+
+The backend operates in one of three modes:
+* `audit`: Allows unregistered devices but logs warnings.
+* `warn`: Allows access with warning flags.
+* `enforce`: **Strict Production Mode.** Rejects logins from unregistered laptops, mismatched fingerprints, or non-compliant EDR systems.
+*(Note: `SUPER_ADMIN` accounts are exempt from device lockdown checks to ensure emergency remote access).*
+
+### 5.2 Device Headers Contract
+
+Testing hub clients must attach these headers on authenticated requests:
+* `x-device-fingerprint`: Unique 32-character browser/hardware fingerprint.
+* `x-device-credential`: 64-character hexadecimal device token assigned during hardware provisioning.
+
+### 5.3 Super Admin Device Management Endpoints
+
+Super Admins manage laptops via `/api/super-admin/devices/*`:
+
+| Endpoint | Method | Payload / Params | Purpose |
+|---|---|---|---|
+| `/api/super-admin/devices` | `POST` | `{ hubLocationId, deviceName, deviceFingerprint, deviceCredential }` | Register an authorized hub laptop |
+| `/api/super-admin/devices` | `GET` | `?hubLocationId=1` | List all authorized devices |
+| `/api/super-admin/devices/health` | `GET` | — | Real-time device health & online/offline overview |
+| `/api/super-admin/devices/lockdown` | `POST` | `{ hubLocationId: 1, isLocked: true }` | **Emergency Lockdown:** Freezes all logins from Hub 1 |
+| `/api/super-admin/devices/:deviceId/revoke` | `POST` | — | Revokes laptop and instantly kills all active sessions |
+
+### 5.4 Device Heartbeat (`POST /api/auth/device/heartbeat`)
+
+Hub devices periodically report health status to keep the online monitor active:
+* **Headers:** `x-device-credential`, `x-device-fingerprint`
+* **Body:**
+```json
+{
+  "edrStatus": "compliant"
 }
 ```
-
-2. **Visual Indicators:**
-   - Display a hub capacity progress meter (e.g. `48 / 60 Enrolled`).
-   - Disable the "Register Candidate" submit button with a tooltip when the count reaches 60.
+* **Allowed Values for `edrStatus`:** `'compliant'`, `'non_compliant'`, `'unknown'`.
+* *Note:* The heartbeat endpoint remains accessible even when a hub is in lockdown to keep monitoring active.
 
 ---
 
-## 6. Assessment-to-Ledger Production Handshake
+## 6. Automated Ledger Minting Handshake
 
-In Guide 5 and Guide 6, the assessment approval flow was described. Here is how the event bus is wired for automated Polygon Amoy issuance:
+The background blockchain minting bridge is now fully wired in production:
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│ 1. Superintendent Approves Assessment:                                 │
-│    POST /api/assessments/:id/approve                                   │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ 2. Backend updates assessment_records status to 'APPROVED'             │
-│    Emits Event: eventBus.emitSafely('assessment.approved', payload)    │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ 3. Ledger Listener intercepts payload:                                 │
-│    Calls ledgerService.issueCredentialOnly(payload)                    │
-│    Inserts entry into candidate.minting_queue (status: 'PENDING')      │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ 4. Background Relayer (runs every 30s in app.js):                      │
-│    Picks up 'PENDING' queue item -> Signs tx on Polygon Amoy           │
-│    Stores polygon_tx_hash and block_number in DB                       │
-│    Updates assessment status from 'APPROVED' -> 'MINTED'               │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ 5. Frontend CredentialsScreen:                                         │
-│    Displays "MINTED" status with direct Polygonscan explorer link:     │
-│    https://amoy.polygonscan.com/tx/0x...                               │
-└────────────────────────────────────────────────────────────────────────┘
+Superintendent clicks "Approve" (ApprovalsScreen.tsx)
+                   │
+                   ▼
+POST /api/assessments/:id/approve
+                   │
+                   ▼
+Backend sets assessment status = 'APPROVED'
+Emits event: eventBus.emitSafely('assessment.approved', payload)
+                   │
+                   ▼
+App Subscriber (src/app.js) catches event:
+├── Calls ledgerService.issueCredentialOnly() -> creates Verifiable Credential
+└── Calls ledgerService.approveAndQueueCredential() -> pushes to candidate.minting_queue
+                   │
+                   ▼
+30-Second Background Relayer loop:
+├── Reads pending queue items
+├── Signs and broadcasts transaction to Polygon Amoy
+├── Saves polygon_tx_hash and block_number
+└── Updates assessment status from 'APPROVED' -> 'MINTED'
+                   │
+                   ▼
+CredentialsScreen.tsx displays "MINTED" with Polygonscan link:
+https://amoy.polygonscan.com/tx/0x...
 ```
 
 ---
 
-## 7. Frontend Integration Code Examples
+## 7. Frontend Integration Code Snippet (Service Layer)
 
-### 7.1 React Hook for Step-Up MFA (`useStepUp.ts`)
+Add these methods to `src/services/api.ts` or `src/services/superAdmin.ts`:
 
 ```typescript
-import { useState } from 'react';
-import { api } from '../services/api';
+// ============================================================
+// Step-Up MFA, Profile & Device Management API Extensions
+// ============================================================
 
-export function useStepUp() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [scope, setScope] = useState<string>('');
-  const [pendingAction, setPendingAction] = useState<((token: string) => Promise<void>) | null>(null);
+export interface DeviceHealth {
+  deviceId: string;
+  hubLocationId: number;
+  deviceName: string;
+  edrStatus: 'compliant' | 'non_compliant' | 'unknown';
+  isOnline: boolean;
+  lastHeartbeatAt: string | null;
+  revoked: boolean;
+}
 
-  const requestElevation = (actionScope: string, action: (token: string) => Promise<void>) => {
-    setScope(actionScope);
-    setPendingAction(() => action);
-    setIsOpen(true);
-  };
-
-  const submitStepUp = async (code: string, isBackup = false) => {
-    const res = await api.post('/api/auth/step-up', {
+export const enhancedApi = {
+  // B1: Step-Up Token Request
+  async requestStepUp(scope: string, mfaCode?: string, backupCode?: string): Promise<string> {
+    const res = await api.post<{ success: boolean; stepUpToken: string }>('/api/auth/step-up', {
       scope,
-      ...(isBackup ? { backupCode: code } : { mfaCode: code }),
+      ...(mfaCode ? { mfaCode } : { backupCode }),
     });
+    return res.data.stepUpToken;
+  },
 
-    if (res.data?.stepUpToken && pendingAction) {
-      await pendingAction(res.data.stepUpToken);
-      setIsOpen(false);
-      setPendingAction(null);
-    }
-  };
-
-  return { isOpen, scope, requestElevation, submitStepUp, cancel: () => setIsOpen(false) };
-}
-```
-
-### 7.2 Service Extensions for Profile & Sessions (`src/services/api.ts`)
-
-```typescript
-export interface UserProfile {
-  user_id: string;
-  email: string;
-  name: string;
-  role: 'TRADE_TESTER' | 'CENTER_SUPERINTENDENT' | 'SUPER_ADMIN';
-  hub_id: number | null;
-  is_mfa_active: boolean;
-  last_login: string;
-  created_at: string;
-}
-
-export interface UserSession {
-  session_id: string;
-  device_fingerprint: string;
-  ip_address: string;
-  created_at: string;
-  last_active: string;
-  expires_at: string;
-  is_current: boolean;
-}
-
-export const profileApi = {
-  // GET /api/auth/profile
-  async getProfile(): Promise<UserProfile> {
-    const res = await api.get<{ success: boolean; profile: UserProfile }>('/api/auth/profile');
+  // B2: Profile & Password
+  async getProfile() {
+    const res = await api.get('/api/auth/profile');
     return res.data.profile;
   },
 
-  // PATCH /api/auth/profile
-  async updatePassword(currentPassword: string, newPassword: string): Promise<void> {
-    await api.patch('/api/auth/profile', { currentPassword, newPassword });
+  async updatePassword(currentPassword: string, newPassword: string) {
+    const res = await api.patch('/api/auth/profile', { currentPassword, newPassword });
+    return res.data;
   },
 
-  // GET /api/auth/sessions
-  async getSessions(): Promise<UserSession[]> {
-    const res = await api.get<{ success: boolean; count: number; sessions: UserSession[] }>('/api/auth/sessions');
+  async getSessions() {
+    const res = await api.get('/api/auth/sessions');
     return res.data.sessions;
+  },
+
+  // B3: Device Management (Super Admin)
+  async getDeviceHealth(): Promise<DeviceHealth[]> {
+    const res = await api.get('/api/super-admin/devices/health');
+    return res.data.devices;
+  },
+
+  async setHubLockdown(hubLocationId: number, isLocked: boolean) {
+    const res = await api.post('/api/super-admin/devices/lockdown', { hubLocationId, isLocked });
+    return res.data;
+  },
+
+  async revokeDevice(deviceId: string) {
+    const res = await api.post(`/api/super-admin/devices/${deviceId}/revoke`);
+    return res.data;
   },
 };
 ```
 
 ---
 
-## 8. Complete Production Environment Variables Matrix
+## 8. Production Environment Reference Matrix
 
-To ensure full compatibility with AWS deployments (EC2 + RDS + S3), verify that your frontend `.env.production` contains all necessary keys:
+Ensure the frontend `.env.production` is configured as follows for AWS deployments:
 
-| Environment Variable | Description | Example Value |
+| Variable | Target Environment | Value / Pattern |
 |---|---|---|
-| `VITE_API_BASE_URL` | Base URL for Backend API | `https://api.nsp.gov.pk` or `http://<EC2_PUBLIC_IP>:3000` |
-| `VITE_RPC_URL` | Polygon Amoy Testnet RPC endpoint | `https://polygon-amoy.infura.io/v3/<INFURA_KEY>` |
-| `VITE_VERIFIER_CONTRACT_ADDRESS` | Deployed `CertificateLogic` address on Polygon Amoy | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
-| `VITE_ENVIRONMENT` | Application deployment environment | `production` |
+| `VITE_API_BASE_URL` | AWS EC2 / ALB | `http://<EC2_PUBLIC_IP>:3000` or `https://api.nsp.gov.pk` |
+| `VITE_RPC_URL` | Polygon Amoy Testnet | `https://polygon-amoy.infura.io/v3/<YOUR_INFURA_KEY>` |
+| `VITE_VERIFIER_CONTRACT_ADDRESS` | Deployed Smart Contract | `0x<40-hex-characters>` (leave blank for backend fallback) |
 
 ---
 
 ## 9. Final Pre-Flight Integration Checklist
 
-Before initiating production user acceptance testing (UAT):
-
-- [x] **Auth & MFA (FR-AUTH):** Login, TOTP verification, RS256 token exchange, backup codes, and 15-minute lockouts verified.
-- [x] **Step-Up MFA (B1):** Protected actions challenge with `POST /api/auth/step-up` and pass `x-step-up-token`.
-- [x] **Profile & Sessions (B2):** Self-service password rotation and active device session listing active.
-- [x] **Candidate Enrolment (FR-CAND):** CNIC validation, pre-signed S3 photo upload, and 60-candidate quota 409 handling verified.
-- [x] **Assessment & Idempotency (FR-ASSE):** Offline IndexedDB queue and `clientRequestId` deduplication active.
-- [x] **Superintendent Queue (FR-ASSE):** Hub-filtered approvals and formal rejections returning assessments to DRAFT verified.
-- [x] **Blockchain Ledger (FR-LEDG):** 30-second relayer cycle mints approved credentials to Polygon Amoy.
-- [x] **Public Verification (FR-VERI):** Instant unauthenticated verification via QR scanner and Manual Entry screen working `< 2.0s`.
-- [x] **Super Admin Portal (FR-ADMIN):** Provisioning, account freezing (`token_version`), MFA reset QR generation, and session killing functional.
+- [x] **FR-AUTH:** Login, TOTP MFA, 15-min lockouts, and backup code recovery verified.
+- [x] **FR-CAND:** 60-candidate hub quota rejection (409) and S3 photo upload verified.
+- [x] **FR-ASSE:** DRAFT, evidence upload, submission, and Superintendent approval/rejection workflows active.
+- [x] **FR-LEDG:** Automated event listener queues credentials to Polygon Amoy relayer on approval.
+- [x] **FR-VERI:** Public QR verification and Manual Entry verification respond in `< 2.0s`.
+- [x] **FR-ADMIN:** Super Admin dashboard, staff provisioning, MFA reset QR modal, and session killing active.
+- [x] **B1 Step-Up:** Sensitive actions challenge for TOTP and attach `x-step-up-token`.
+- [x] **B2 Profile:** Self-service password updates and active sessions list functional.
+- [x] **B3 Devices:** Device authorization, heartbeat reporting, and emergency hub lockdown active.
