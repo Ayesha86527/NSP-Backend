@@ -407,6 +407,221 @@ const emailExists = async (email) => {
 };
 
 // --------------------------------------------------
+// DEVICE MANAGEMENT
+// --------------------------------------------------
+
+const registerAuthorizedDevice = async ({
+  hubLocationId,
+  deviceName,
+  deviceFingerprint,
+  deviceCredentialHash
+}) => {
+  const result = await pool.query(
+    `
+      INSERT INTO auth.authorized_devices (
+        hub_location_id,
+        device_name,
+        device_fingerprint,
+        device_credential_hash
+      )
+      VALUES ($1, $2, $3, $4)
+      RETURNING
+        device_id,
+        hub_location_id,
+        device_name,
+        device_fingerprint,
+        edr_status,
+        revoked,
+        created_at
+    `,
+    [
+      hubLocationId,
+      deviceName,
+      deviceFingerprint,
+      deviceCredentialHash
+    ]
+  );
+
+  return result.rows[0];
+};
+
+const listAuthorizedDevices = async ({
+  hubLocationId,
+  limit = 50,
+  offset = 0
+}) => {
+  const result = await pool.query(
+    `
+      SELECT
+        device_id,
+        hub_location_id,
+        device_name,
+        device_fingerprint,
+        edr_status,
+        last_heartbeat_at,
+        revoked,
+        revoked_at,
+        created_at,
+        updated_at
+      FROM auth.authorized_devices
+      WHERE ($1::INTEGER IS NULL OR hub_location_id = $1)
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3
+    `,
+    [hubLocationId ?? null, limit, offset]
+  );
+
+  return result.rows;
+};
+
+const revokeAuthorizedDevice = async (deviceId) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(
+      `
+        UPDATE auth.authorized_devices
+        SET
+          revoked = TRUE,
+          revoked_at = COALESCE(revoked_at, NOW()),
+          updated_at = NOW()
+        WHERE device_id = $1
+          AND revoked = FALSE
+        RETURNING
+          device_id,
+          hub_location_id,
+          device_name,
+          device_fingerprint
+      `,
+      [deviceId]
+    );
+
+    const device = result.rows[0];
+
+    if (!device) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    // Revoke sessions associated with this device and hub.
+    await client.query(
+      `
+        UPDATE auth.sessions s
+        SET revoked = TRUE
+        FROM auth.users u
+        WHERE s.user_id = u.user_id
+          AND u.hub_location_id = $1
+          AND s.device_fingerprint = $2
+          AND s.revoked = FALSE
+      `,
+      [
+        device.hub_location_id,
+        device.device_fingerprint
+      ]
+    );
+
+    await client.query('COMMIT');
+
+    return device;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// --------------------------------------------------
+// DEVICE HEALTH
+// device_credential_hash is intentionally not selected.
+// --------------------------------------------------
+
+async function getDeviceHealth(hubLocationId = null) {
+  const result = await pool.query(
+    `SELECT
+       device_id,
+       hub_location_id,
+       device_name,
+       edr_status,
+       last_heartbeat_at,
+       revoked,
+       created_at
+     FROM auth.authorized_devices
+     WHERE ($1::INTEGER IS NULL OR hub_location_id = $1)
+     ORDER BY hub_location_id, device_name`,
+    [hubLocationId]
+  );
+
+  return result.rows;
+}
+
+// --------------------------------------------------
+// HUB DEVICE LOCKDOWN
+// Upserts the lockdown state for a hub.
+// --------------------------------------------------
+
+const setHubLockdown = async (hubLocationId, isLocked, lockedBy) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(
+      `
+        INSERT INTO auth.hub_device_lockdowns
+          (hub_location_id, is_locked, locked_by, locked_at, updated_at)
+        VALUES
+          ($1, $2, $3, CASE WHEN $2 THEN NOW() ELSE NULL END, NOW())
+        ON CONFLICT (hub_location_id)
+        DO UPDATE SET
+          is_locked = EXCLUDED.is_locked,
+          locked_by = EXCLUDED.locked_by,
+          locked_at = CASE
+            WHEN EXCLUDED.is_locked THEN NOW()
+            ELSE NULL
+          END,
+          updated_at = NOW()
+        RETURNING
+          hub_location_id,
+          is_locked,
+          locked_by,
+          locked_at,
+          updated_at
+      `,
+      [hubLocationId, isLocked, lockedBy]
+    );
+
+    // When lockdown is enabled, revoke all active sessions
+    // belonging to users assigned to this hub.
+    if (isLocked) {
+      await client.query(
+        `
+          UPDATE auth.sessions s
+          SET revoked = TRUE
+          FROM auth.users u
+          WHERE s.user_id = u.user_id
+            AND u.hub_location_id = $1
+            AND u.role <> 'SUPER_ADMIN'
+            AND s.revoked = FALSE
+        `,
+        [hubLocationId]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    return result.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// --------------------------------------------------
 // EXPORTS
 // --------------------------------------------------
 
@@ -421,5 +636,10 @@ module.exports = {
   setAdminLock,
   resetUserMfa,
   getSecurityUserById,
-  emailExists
+  emailExists,
+  registerAuthorizedDevice,
+  listAuthorizedDevices,
+  revokeAuthorizedDevice,
+  getDeviceHealth,
+  setHubLockdown
 };

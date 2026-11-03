@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const service = require('./superAdmin.service');
 const authService = require('../auth/auth.service');
 
@@ -232,6 +233,117 @@ const resetMfa = async (req, res, next) => {
 };
 
 // --------------------------------------------------
+// DEVICE MANAGEMENT
+// --------------------------------------------------
+
+const registerDevice = async (req, res, next) => {
+  try {
+    const {
+      hubLocationId,
+      deviceName,
+      deviceFingerprint
+    } = req.body;
+
+    // Generate a cryptographically secure one-time credential.
+    const deviceCredential = crypto.randomBytes(32).toString('hex');
+
+    // Store only the SHA-256 hash.
+    const deviceCredentialHash = crypto
+      .createHash('sha256')
+      .update(deviceCredential)
+      .digest('hex');
+
+    const data = await service.registerDevice({
+      hubLocationId,
+      deviceName,
+      deviceFingerprint,
+      deviceCredentialHash,
+      adminUserId: req.user.userId || req.user.id,
+      ipAddress: req.ip
+    });
+
+    // Return the plaintext credential only once.
+    return res.status(201).json({
+      success: true,
+      data: {
+        ...data,
+        deviceCredential
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const listDevices = async (req, res, next) => {
+  try {
+    const data = await service.listDevices(req.query);
+
+    return res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const revokeDevice = async (req, res, next) => {
+  try {
+    const data = await service.revokeDevice({
+      deviceId: req.params.deviceId,
+      adminUserId: req.user.userId || req.user.id,
+      ipAddress: req.ip
+    });
+
+    return res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getDeviceHealth = async (req, res, next) => {
+  try {
+    const data = await service.getDeviceHealth(
+      req.query.hubLocationId
+    );
+
+    return res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// --------------------------------------------------
+// HUB DEVICE LOCKDOWN
+// --------------------------------------------------
+const setHubLockdown = async (req, res, next) => {
+  try {
+    const { hubLocationId, isLocked } = req.body;
+
+    const data = await service.setHubLockdown({
+      hubLocationId,
+      isLocked,
+      adminUserId: req.user.userId,
+      ipAddress: req.ip
+    });
+
+    return res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// --------------------------------------------------
 // EXPORTS
 // --------------------------------------------------
 module.exports = {
@@ -244,5 +356,10 @@ module.exports = {
   createUser,
   lockUser,
   unlockUser,
-  resetMfa
+  resetMfa,
+  registerDevice,
+  listDevices,
+  revokeDevice,
+  getDeviceHealth,
+  setHubLockdown
 };

@@ -3,16 +3,17 @@ const authService = require('./auth.service');
 
 // ======================================================
 // DEVICE FINGERPRINT EXTRACTOR (FR-AUTH-04)
-// Extracts client fingerprint header (x-device-fingerprint)
-// or calculates deterministic SHA-256 fallback from UA + IP.
 // ======================================================
 const getDeviceFingerprint = (req) => {
     const headerFp = req.headers['x-device-fingerprint'];
+
     if (headerFp && typeof headerFp === 'string' && headerFp.trim().length > 0) {
         return headerFp.trim().toLowerCase();
     }
+
     const ua = req.headers['user-agent'] || 'unknown-ua';
     const ip = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+
     return crypto.createHash('sha256').update(`${ua}|${ip}`).digest('hex');
 };
 
@@ -31,12 +32,14 @@ const login = async (req, res, next) => {
         }
 
         const deviceFingerprint = getDeviceFingerprint(req);
+        const deviceCredential = req.headers['x-device-credential'] || null;
 
         const result = await authService.login(
             email,
             password,
             req.ip,
-            deviceFingerprint
+            deviceFingerprint,
+            deviceCredential
         );
 
         if (!result.success) {
@@ -64,16 +67,18 @@ const verifyMfa = async (req, res, next) => {
         }
 
         const deviceFingerprint = getDeviceFingerprint(req);
+        const deviceCredential = req.headers['x-device-credential'] || null;
 
         const result = await authService.verifyMfa(
             email,
             mfaCode,
             req.ip,
-            deviceFingerprint
+            deviceFingerprint,
+            deviceCredential
         );
 
         if (!result.success) {
-            return res.status(401).json(result);
+            return res.status(result.statusCode || 401).json(result);
         }
 
         return res.status(200).json(result);
@@ -84,8 +89,6 @@ const verifyMfa = async (req, res, next) => {
 
 // ======================================================
 // START MFA ENROLLMENT
-// Requires a dedicated MFA-enrollment authorization
-// middleware, NOT ordinary authenticate middleware.
 // ======================================================
 const startMfaEnrollment = async (req, res, next) => {
     try {
@@ -115,7 +118,6 @@ const startMfaEnrollment = async (req, res, next) => {
 
 // ======================================================
 // CONFIRM MFA ENROLLMENT
-// Requires the same dedicated enrollment middleware.
 // ======================================================
 const confirmMfaEnrollment = async (req, res, next) => {
     try {
@@ -167,19 +169,28 @@ const refresh = async (req, res, next) => {
         }
 
         const deviceFingerprint = getDeviceFingerprint(req);
+        const deviceCredential = req.headers['x-device-credential'] || null;
 
         const result = await authService.refreshAccessToken(
             refreshToken,
             req.ip,
-            deviceFingerprint
+            deviceFingerprint,
+            deviceCredential
         );
 
         if (!result.success) {
-            return res.status(401).json(result);
+            return res.status(result.statusCode || 401).json(result);
         }
 
         return res.status(200).json(result);
     } catch (error) {
+        if (error.statusCode === 403) {
+            return res.status(403).json({
+                success: false,
+                message: error.message
+            });
+        }
+
         next(error);
     }
 };
@@ -215,7 +226,6 @@ const revokeSession = async (req, res, next) => {
 
 // ======================================================
 // GENERATE BACKUP CODES
-// Requires ordinary authenticated access.
 // ======================================================
 const generateBackupCodes = async (req, res, next) => {
     try {
@@ -234,7 +244,6 @@ const generateBackupCodes = async (req, res, next) => {
             return res.status(409).json(result);
         }
 
-        // Plaintext backup codes are returned only at generation.
         return res.status(200).json(result);
     } catch (error) {
         next(error);
@@ -256,17 +265,19 @@ const verifyBackupCode = async (req, res, next) => {
         }
 
         const deviceFingerprint = getDeviceFingerprint(req);
+        const deviceCredential = req.headers['x-device-credential'] || null;
 
         const result = await authService.verifyBackupCode(
             email,
             password,
             backupCode,
             req.ip,
-            deviceFingerprint
+            deviceFingerprint,
+            deviceCredential
         );
 
         if (!result.success) {
-            return res.status(401).json(result);
+            return res.status(result.statusCode || 401).json(result);
         }
 
         return res.status(200).json(result);
@@ -277,7 +288,6 @@ const verifyBackupCode = async (req, res, next) => {
 
 // ======================================================
 // BACKUP-CODE STATUS
-// Requires ordinary authenticated access.
 // ======================================================
 const backupCodeStatus = async (req, res, next) => {
     try {
@@ -300,7 +310,6 @@ const backupCodeStatus = async (req, res, next) => {
 
 // ======================================================
 // STEP-UP MFA AUTHENTICATION (B1)
-// Requires ordinary authenticated access.
 // ======================================================
 const stepUp = async (req, res, next) => {
     try {
@@ -485,6 +494,26 @@ const getSessions = async (req, res, next) => {
 };
 
 // ======================================================
+// DEVICE HEARTBEAT (EDR STATUS UPDATE)
+// ======================================================
+async function heartbeat(req, res, next) {
+    try {
+        const device = await authService.updateDeviceHeartbeat(
+            req.device.deviceId,
+            req.body.edrStatus
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'Device heartbeat received',
+            device
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+// ======================================================
 // EXPORT CONTROLLERS
 // ======================================================
 module.exports = {
@@ -500,5 +529,6 @@ module.exports = {
     stepUp,
     getProfile,
     updateProfile,
-    getSessions
+    getSessions,
+    heartbeat
 };
