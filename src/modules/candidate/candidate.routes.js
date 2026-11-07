@@ -23,4 +23,10 @@ router.post(
     candidateController.enrolCandidate
 );
 
+router.get(
+    '/',
+    authenticate,
+    candidateController.listCandidates
+);
+
 module.exports = router;

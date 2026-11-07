@@ -29,7 +29,21 @@ const createPhotoUploadUrl = async (req, res, next) => {
         next(error);
     }
 };
+
+const listCandidates = async (req, res, next) => {
+    try {
+        const candidates = await candidateService.listCandidatesByHub(req.user);
+        return res.status(200).json({
+            success: true,
+            candidates
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     enrolCandidate,
-    createPhotoUploadUrl
+    createPhotoUploadUrl,
+    listCandidates
 };
