@@ -20,21 +20,21 @@ const router = express.Router();
 router.get(
     '/queue',
     authenticate,
-    requireRole('CENTER_SUPERINTENDENT'),
+    requireRole('CENTER_SUPERINTENDENT', 'SUPER_ADMIN'),
     assessmentController.getApprovalQueue
 );
 
 router.post(
     '/:assessmentId/approve',
     authenticate,
-    requireRole('CENTER_SUPERINTENDENT'),
+    requireRole('CENTER_SUPERINTENDENT', 'SUPER_ADMIN'),
     assessmentController.approveAssessment
 );
 
 router.post(
     '/:assessmentId/reject',
     authenticate,
-    requireRole('CENTER_SUPERINTENDENT'),
+    requireRole('CENTER_SUPERINTENDENT', 'SUPER_ADMIN'),
     assessmentController.rejectAssessment
 );
 

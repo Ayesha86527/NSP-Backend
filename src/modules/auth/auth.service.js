@@ -573,17 +573,33 @@ const startMfaEnrollment = async (userId, ipAddress = null) => {
     return { success: false, message: 'Account unavailable' };
   }
 
-  const secret = generateSecret();
-  const encryptedSecret = encryptMfaSecret(secret);
+  // Reuse the secret that is already pending for this account instead of
+  // generating a new one on every call. Otherwise a page refresh, a retry or
+  // a second login would invalidate the QR code the user already scanned,
+  // and the secret an admin issued at account creation / MFA reset would be
+  // silently replaced. A new secret is created only when none is pending.
+  let secret = null;
 
-  await pool.query(
-    `UPDATE auth.users
-        SET mfa_secret = $2,
-            is_mfa_active = FALSE,
-            mfa_enrollment_pending = TRUE
-      WHERE user_id = $1`,
-    [userId, encryptedSecret]
-  );
+  if (user.mfa_enrollment_pending && user.mfa_secret) {
+    try {
+      secret = decryptMfaSecret(user.mfa_secret);
+    } catch (error) {
+      secret = null;
+    }
+  }
+
+  if (!secret) {
+    secret = generateSecret();
+
+    await pool.query(
+      `UPDATE auth.users
+          SET mfa_secret = $2,
+              is_mfa_active = FALSE,
+              mfa_enrollment_pending = TRUE
+        WHERE user_id = $1`,
+      [userId, encryptMfaSecret(secret)]
+    );
+  }
 
   const otpauthUrl = generateURI({
     issuer: 'NSP',

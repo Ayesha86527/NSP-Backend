@@ -237,6 +237,7 @@ const updateAssessment = async ({
  */
 const createAssessmentPhotoUploadUrl = async ({
     assessmentId,
+    contentType,
     user
 }) => {
     validateTester(user);
@@ -279,7 +280,8 @@ const createAssessmentPhotoUploadUrl = async ({
 
     return s3Service.createAssessmentPhotoUploadUrl({
         assessmentId,
-        userId: user.userId
+        userId: user.userId,
+        contentType
     });
 };
 
@@ -448,6 +450,11 @@ const validateSuperintendent = (user) => {
         throw error;
     }
 
+    // Super Admins may review and approve across every hub.
+    if (user.role === 'SUPER_ADMIN') {
+        return;
+    }
+
     if (user.role !== 'CENTER_SUPERINTENDENT') {
         const error = new Error(
             'Only Center Superintendents can approve or reject assessments'
@@ -467,13 +474,31 @@ const validateSuperintendent = (user) => {
 };
 
 /**
+ * Superintendents are limited to their own hub.
+ * Super Admins are not hub-scoped.
+ */
+const assertCanActOnHub = (user, candidate) => {
+    if (user.role === 'SUPER_ADMIN') {
+        return;
+    }
+
+    if (candidate.testing_hub_id !== user.hubLocationId) {
+        const error = new Error(
+            'Assessment does not belong to your testing hub'
+        );
+        error.statusCode = 403;
+        throw error;
+    }
+};
+
+/**
  * Get SUBMITTED assessments for the Superintendent's hub.
  */
 const getApprovalQueue = async ({ user }) => {
     validateSuperintendent(user);
 
     return assessmentModel.findSubmittedForSuperintendent(
-        user.hubLocationId
+        user.role === 'SUPER_ADMIN' ? null : user.hubLocationId
     );
 };
 
@@ -510,13 +535,7 @@ const approveAssessment = async ({ assessmentId, user }) => {
         throw error;
     }
 
-    if (candidate.testing_hub_id !== user.hubLocationId) {
-        const error = new Error(
-            'Assessment does not belong to your testing hub'
-        );
-        error.statusCode = 403;
-        throw error;
-    }
+    assertCanActOnHub(user, candidate);
 
     if (assessment.status !== 'SUBMITTED') {
         const error = new Error(
@@ -549,7 +568,8 @@ const approveAssessment = async ({ assessmentId, user }) => {
         details: {
             assessmentId: approvedAssessment.assessment_id,
             candidateId: approvedAssessment.candidate_id,
-            hubId: approvedAssessment.testing_hub_id
+            hubId: approvedAssessment.testing_hub_id,
+            approverRole: user.role
         }
     });
 
@@ -647,13 +667,7 @@ const rejectAssessment = async ({
         throw error;
     }
 
-    if (candidate.testing_hub_id !== user.hubLocationId) {
-        const error = new Error(
-            'Assessment does not belong to your testing hub'
-        );
-        error.statusCode = 403;
-        throw error;
-    }
+    assertCanActOnHub(user, candidate);
 
     if (assessment.status !== 'SUBMITTED') {
         const error = new Error(

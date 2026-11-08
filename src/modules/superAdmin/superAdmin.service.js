@@ -30,6 +30,35 @@ const createError = (message, statusCode = 400) => {
 };
 
 // --------------------------------------------------
+// RESPONSE SHAPING
+// --------------------------------------------------
+// The database returns snake_case columns, but the frontend contract
+// (docs/frontend_guide_7.md) is camelCase. Every row is returned with BOTH
+// spellings so the portal works whichever one it reads.
+const toCamel = (key) =>
+  key.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
+
+const withCamelKeys = (row) => {
+  if (!row || typeof row !== 'object') return row;
+
+  const out = { ...row };
+
+  for (const [key, value] of Object.entries(row)) {
+    const camel = toCamel(key);
+    if (!(camel in out)) {
+      out[camel] = value;
+    }
+  }
+
+  return out;
+};
+
+const mapAuditLog = (row) => ({
+  ...withCamelKeys(row),
+  logId: row.audit_id
+});
+
+// --------------------------------------------------
 // AUDIT HELPER
 // --------------------------------------------------
 const auditAdminAction = async ({
@@ -83,14 +112,20 @@ const getUsers = async (filters = {}) => {
     throw createError('Invalid role filter');
   }
 
-  return model.listUsers({
-    limit,
-    offset,
-    role,
-    search: filters.search
-      ? String(filters.search).trim().slice(0, 100)
-      : undefined
-  });
+  const search = filters.search
+    ? String(filters.search).trim().slice(0, 100)
+    : undefined;
+
+  const [rows, total] = await Promise.all([
+    model.listUsers({ limit, offset, role, search }),
+    model.countUsers({ role, search })
+  ]);
+
+  // Documented shape: { users: [...], pagination: { limit, offset, total } }
+  return {
+    users: rows.map(withCamelKeys),
+    pagination: { limit, offset, total }
+  };
 };
 
 // --------------------------------------------------
@@ -102,7 +137,9 @@ const getAuditLogs = async (limitValue) => {
     100
   );
 
-  return model.getRecentAuditLogs(limit);
+  const rows = await model.getRecentAuditLogs(limit);
+
+  return rows.map(mapAuditLog);
 };
 
 // --------------------------------------------------
@@ -114,7 +151,34 @@ const getSessions = async (limitValue) => {
     100
   );
 
-  return model.listActiveSessions(limit);
+  const rows = await model.listActiveSessions(limit);
+
+  return rows.map(withCamelKeys);
+};
+
+// --------------------------------------------------
+// MINTING QUEUE
+// --------------------------------------------------
+const getMintingQueue = async (filters = {}) => {
+  const limit = Math.min(
+    Math.max(Number(filters.limit) || 50, 1),
+    100
+  );
+
+  const status = filters.status
+    ? String(filters.status).trim().toUpperCase()
+    : undefined;
+
+  if (
+    status &&
+    !['QUEUED', 'BROADCASTED', 'CONFIRMED', 'MINTED', 'FAILED'].includes(status)
+  ) {
+    throw createError('Invalid minting queue status filter');
+  }
+
+  const rows = await model.listMintingQueue({ limit, status });
+
+  return rows.map(withCamelKeys);
 };
 
 // --------------------------------------------------
@@ -162,7 +226,17 @@ const getUserDetails = async (userId) => {
     throw createError('User not found', 404);
   }
 
-  return user;
+  const [sessions, auditRows] = await Promise.all([
+    model.listSessionsByUser(userId),
+    model.getRecentAuditForUser(userId)
+  ]);
+
+  // Documented shape: { user, sessions, recentAuditEvents }
+  return {
+    user: withCamelKeys(user),
+    sessions: sessions.map(withCamelKeys),
+    recentAuditEvents: auditRows.map(mapAuditLog)
+  };
 };
 
 // --------------------------------------------------
@@ -275,9 +349,12 @@ const createUser = async ({
     }
   });
 
+  // Guide #7 shows the new user's fields directly under `data`, so
+  // expose them there as well as under `data.user`.
   return {
+    ...withCamelKeys(user),
     message: 'User created successfully. MFA enrollment is required.',
-    user
+    user: withCamelKeys(user)
   };
 };
 
@@ -325,7 +402,7 @@ const lockUser = async ({
 
   return {
     message: 'User account locked successfully',
-    user
+    user: withCamelKeys(user)
   };
 };
 
@@ -373,7 +450,7 @@ const unlockUser = async ({
 
   return {
     message: 'User account unlocked successfully',
-    user
+    user: withCamelKeys(user)
   };
 };
 
@@ -887,6 +964,7 @@ module.exports = {
   getUsers,
   getAuditLogs,
   getSessions,
+  getMintingQueue,
   revokeSession,
   getUserDetails,
   createUser,

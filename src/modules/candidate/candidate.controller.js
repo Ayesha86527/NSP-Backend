@@ -17,8 +17,13 @@ const enrolCandidate = async (req, res, next) => {
 };
 const createPhotoUploadUrl = async (req, res, next) => {
     try {
+        const body = req.body || {};
+
         const result = await s3Service.createPhotoUploadUrl({
-            userId: req.user.userId
+            userId: req.user.userId,
+            // Accept the common field names a frontend might use.
+            contentType:
+                body.contentType || body.fileType || body.mimeType
         });
 
         return res.status(200).json({

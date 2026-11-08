@@ -12,34 +12,58 @@ const {
     s3Client
 } = require('../../config/aws');
 
-const generatePhotoKey = ({ userId }) => {
-    const randomId = crypto.randomUUID();
+const UPLOAD_URL_EXPIRY_SECONDS = 300;
 
-    return `candidate-photos/${userId}/${randomId}.jpg`;
+// Only these image types may be uploaded. The key is the (normalised)
+// MIME type the frontend sends, the value is the S3 object extension.
+const ALLOWED_IMAGE_TYPES = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png'
 };
 
-const createPhotoUploadUrl = async ({ userId }) => {
-    const bucket = process.env.AWS_S3_BUCKET;
+/**
+ * Validate the MIME type requested by the frontend.
+ * Defaults to image/jpeg so older clients keep working.
+ *
+ * The presigned URL is signed for exactly this Content-Type, so the
+ * browser MUST send the same value in its PUT request header.
+ */
+const resolveImageType = (contentType) => {
+    const normalised =
+        typeof contentType === 'string' && contentType.trim()
+            ? contentType.trim().toLowerCase()
+            : 'image/jpeg';
 
-    if (!bucket) {
-        throw new Error('AWS_S3_BUCKET is not configured');
+    const extension = ALLOWED_IMAGE_TYPES[normalised];
+
+    if (!extension) {
+        const error = new Error(
+            'Unsupported image type. Only JPEG and PNG images are allowed'
+        );
+        error.statusCode = 400;
+        throw error;
     }
 
-    const key = generatePhotoKey({
-        userId
-    });
+    return {
+        // Store a single canonical value for JPEG.
+        contentType: normalised === 'image/jpg' ? 'image/jpeg' : normalised,
+        extension
+    };
+};
 
+const buildUploadUrl = async ({ bucket, key, contentType }) => {
     const command = new PutObjectCommand({
         Bucket: bucket,
         Key: key,
-        ContentType: 'image/jpeg'
+        ContentType: contentType
     });
 
     const uploadUrl = await getSignedUrl(
         s3Client,
         command,
         {
-            expiresIn: 300
+            expiresIn: UPLOAD_URL_EXPIRY_SECONDS
         }
     );
 
@@ -47,13 +71,34 @@ const createPhotoUploadUrl = async ({ userId }) => {
         uploadUrl,
         key,
         s3Uri: `s3://${bucket}/${key}`,
-        expiresIn: 300
+        // The frontend must send this exact value as the Content-Type
+        // header when it PUTs the file to uploadUrl.
+        contentType,
+        expiresIn: UPLOAD_URL_EXPIRY_SECONDS
     };
+};
+
+const createPhotoUploadUrl = async ({ userId, contentType }) => {
+    const bucket = process.env.AWS_S3_BUCKET;
+
+    if (!bucket) {
+        throw new Error('AWS_S3_BUCKET is not configured');
+    }
+
+    const image = resolveImageType(contentType);
+    const randomId = crypto.randomUUID();
+
+    return buildUploadUrl({
+        bucket,
+        key: `candidate-photos/${userId}/${randomId}.${image.extension}`,
+        contentType: image.contentType
+    });
 };
 
 const createAssessmentPhotoUploadUrl = async ({
     assessmentId,
-    userId
+    userId,
+    contentType
 }) => {
     const bucket = process.env.AWS_S3_BUCKET;
 
@@ -61,34 +106,21 @@ const createAssessmentPhotoUploadUrl = async ({
         throw new Error('AWS_S3_BUCKET is not configured');
     }
 
+    const image = resolveImageType(contentType);
     const randomId = crypto.randomUUID();
 
-    const key =
-        `assessment-media/${userId}/${assessmentId}/${randomId}.jpg`;
-
-    const command = new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        ContentType: 'image/jpeg'
+    return buildUploadUrl({
+        bucket,
+        key:
+            `assessment-media/${userId}/${assessmentId}/` +
+            `${randomId}.${image.extension}`,
+        contentType: image.contentType
     });
-
-    const uploadUrl = await getSignedUrl(
-        s3Client,
-        command,
-        {
-            expiresIn: 300
-        }
-    );
-
-    return {
-        uploadUrl,
-        key,
-        s3Uri: `s3://${bucket}/${key}`,
-        expiresIn: 300
-    };
 };
 
 module.exports = {
     createPhotoUploadUrl,
-    createAssessmentPhotoUploadUrl
+    createAssessmentPhotoUploadUrl,
+    resolveImageType,
+    ALLOWED_IMAGE_TYPES
 };

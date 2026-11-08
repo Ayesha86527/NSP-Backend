@@ -122,10 +122,16 @@ const createAssessmentPhotoUploadUrl =
                 assessmentId
             } = req.params;
 
+            const body = req.body || {};
+
             const result =
                 await assessmentService
                     .createAssessmentPhotoUploadUrl({
                         assessmentId,
+                        contentType:
+                            body.contentType ||
+                            body.fileType ||
+                            body.mimeType,
                         user: req.user
                     });
 

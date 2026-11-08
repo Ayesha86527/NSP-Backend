@@ -15,6 +15,7 @@ router.get('/users', controller.getUsers);
 router.get('/users/:userId', controller.getUserDetails);
 router.get('/audit-logs', controller.getAuditLogs);
 router.get('/sessions', controller.getSessions);
+router.get('/minting-queue', controller.getMintingQueue);
 router.post('/sessions/:sessionId/revoke', controller.revokeSession);
 
 // Device management

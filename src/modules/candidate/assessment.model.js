@@ -245,7 +245,7 @@ const findSubmittedForSuperintendent = async (hubId) => {
         INNER JOIN candidate.candidates c
             ON c.candidate_id = ar.candidate_id
         WHERE ar.status = 'SUBMITTED'
-          AND c.testing_hub_id = $1
+          AND ($1::int IS NULL OR c.testing_hub_id = $1)
         ORDER BY ar.submitted_at ASC
         `,
         [hubId]

@@ -7,22 +7,147 @@ const { createAuditLog } = require('../auth/audit.model');
 // --------------------------------------------------
 
 const getDashboardStats = async () => {
-  const result = await pool.query(`
-    SELECT
-      COUNT(*)::int AS total_users,
-      COUNT(*) FILTER (
-        WHERE role = 'SUPER_ADMIN'
-      )::int AS super_admins,
-      COUNT(*) FILTER (
-        WHERE role = 'CENTER_SUPERINTENDENT'
-      )::int AS superintendents,
-      COUNT(*) FILTER (
-        WHERE role = 'TRADE_TESTER'
-      )::int AS trade_testers
-    FROM auth.users
-  `);
+  const [users, sessions, candidates, assessments, credentials, queue, hubs] =
+    await Promise.all([
+      pool.query(`
+        SELECT
+          COUNT(*)::int AS total,
+          COUNT(*) FILTER (WHERE role = 'SUPER_ADMIN')::int AS super_admins,
+          COUNT(*) FILTER (WHERE role = 'CENTER_SUPERINTENDENT')::int AS center_superintendents,
+          COUNT(*) FILTER (WHERE role = 'TRADE_TESTER')::int AS trade_testers,
+          COUNT(*) FILTER (WHERE is_mfa_active = TRUE)::int AS active_mfa,
+          COUNT(*) FILTER (WHERE mfa_enrollment_pending = TRUE)::int AS pending_mfa,
+          COUNT(*) FILTER (WHERE admin_locked = TRUE)::int AS admin_locked,
+          COUNT(*) FILTER (WHERE is_active = TRUE)::int AS active_users
+        FROM auth.users
+      `),
+      pool.query(`
+        SELECT COUNT(*)::int AS active_count
+        FROM auth.sessions
+        WHERE revoked = FALSE AND expires_at > NOW()
+      `),
+      pool.query(`
+        SELECT COUNT(*)::int AS total_enrolled
+        FROM candidate.candidates
+      `),
+      pool.query(`
+        SELECT
+          COUNT(*)::int AS total_assessed,
+          COUNT(*) FILTER (WHERE status = 'DRAFT')::int AS draft,
+          COUNT(*) FILTER (WHERE status = 'SUBMITTED')::int AS submitted,
+          COUNT(*) FILTER (WHERE status = 'APPROVED')::int AS approved,
+          COUNT(*) FILTER (WHERE status = 'MINTED')::int AS minted,
+          COUNT(*) FILTER (WHERE rejection_reason IS NOT NULL)::int AS rejected
+        FROM candidate.assessment_records
+      `),
+      pool.query(`
+        SELECT
+          COUNT(*)::int AS total_credentials,
+          COUNT(*) FILTER (WHERE status = 'PENDING_APPROVAL')::int AS pending_approval,
+          COUNT(*) FILTER (WHERE status = 'APPROVED')::int AS approved,
+          COUNT(*) FILTER (WHERE status = 'MINTED')::int AS minted_on_chain,
+          COUNT(*) FILTER (WHERE status = 'REVOKED')::int AS revoked
+        FROM ledger.credentials
+      `),
+      pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE status IN ('QUEUED', 'BROADCASTED'))::int AS queue_pending,
+          COUNT(*) FILTER (WHERE status = 'FAILED')::int AS queue_failed,
+          COUNT(*) FILTER (WHERE status IN ('CONFIRMED', 'MINTED'))::int AS queue_minted,
+          COUNT(*)::int AS queue_total
+        FROM ledger.minting_queue
+      `),
+      // One row per testing hub (hubs are numbered 1-5 by the DB CHECK
+      // constraints), including hubs that have no data yet.
+      pool.query(`
+        SELECT
+          h.hub_id,
+          COALESCE(c.enrolled, 0)::int AS enrolled,
+          COALESCE(a.draft, 0)::int AS draft,
+          COALESCE(a.submitted, 0)::int AS submitted,
+          COALESCE(a.approved, 0)::int AS approved,
+          COALESCE(a.minted, 0)::int AS minted,
+          COALESCE(a.total, 0)::int AS assessed
+        FROM generate_series(1, 5) AS h(hub_id)
+        LEFT JOIN (
+          SELECT testing_hub_id, COUNT(*) AS enrolled
+          FROM candidate.candidates
+          GROUP BY testing_hub_id
+        ) c ON c.testing_hub_id = h.hub_id
+        LEFT JOIN (
+          SELECT
+            cand.testing_hub_id,
+            COUNT(*) AS total,
+            COUNT(*) FILTER (WHERE ar.status = 'DRAFT') AS draft,
+            COUNT(*) FILTER (WHERE ar.status = 'SUBMITTED') AS submitted,
+            COUNT(*) FILTER (WHERE ar.status = 'APPROVED') AS approved,
+            COUNT(*) FILTER (WHERE ar.status = 'MINTED') AS minted
+          FROM candidate.assessment_records ar
+          JOIN candidate.candidates cand
+            ON cand.candidate_id = ar.candidate_id
+          GROUP BY cand.testing_hub_id
+        ) a ON a.testing_hub_id = h.hub_id
+        ORDER BY h.hub_id
+      `)
+    ]);
 
-  return result.rows[0];
+  const u = users.rows[0];
+  const a = assessments.rows[0];
+  const l = credentials.rows[0];
+  const q = queue.rows[0];
+
+  return {
+    // Shape documented in frontend guide #7.
+    users: {
+      total: u.total,
+      superAdmins: u.super_admins,
+      centerSuperintendents: u.center_superintendents,
+      tradeTesters: u.trade_testers,
+      activeMfa: u.active_mfa,
+      pendingMfa: u.pending_mfa,
+      adminLocked: u.admin_locked,
+      activeUsers: u.active_users
+    },
+    sessions: { activeCount: sessions.rows[0].active_count },
+    candidates: {
+      totalEnrolled: candidates.rows[0].total_enrolled,
+      verifiedCnic: candidates.rows[0].total_enrolled
+    },
+    assessments: {
+      totalAssessed: a.total_assessed,
+      draft: a.draft,
+      submitted: a.submitted,
+      approved: a.approved,
+      minted: a.minted,
+      rejected: a.rejected
+    },
+    ledger: {
+      totalCredentials: l.total_credentials,
+      pendingApproval: l.pending_approval,
+      approved: l.approved,
+      mintedOnChain: l.minted_on_chain,
+      revoked: l.revoked,
+      queuePending: q.queue_pending,
+      queueFailed: q.queue_failed,
+      queueMinted: q.queue_minted,
+      queueTotal: q.queue_total
+    },
+    hubs: hubs.rows.map((h) => ({
+      hubLocationId: h.hub_id,
+      enrolled: h.enrolled,
+      assessed: h.assessed,
+      draft: h.draft,
+      submitted: h.submitted,
+      approved: h.approved,
+      minted: h.minted
+    })),
+
+    // Legacy flat keys kept so nothing built on the old response breaks.
+    total_users: u.total,
+    super_admins: u.super_admins,
+    superintendents: u.center_superintendents,
+    trade_testers: u.trade_testers
+  };
 };
 
 // --------------------------------------------------
@@ -82,6 +207,34 @@ const listUsers = async ({
   return result.rows;
 };
 
+const countUsers = async ({ role, search }) => {
+  const values = [];
+  const conditions = [];
+
+  if (role) {
+    values.push(role);
+    conditions.push(`role = $${values.length}`);
+  }
+
+  if (search) {
+    values.push(`%${search}%`);
+    conditions.push(
+      `(email ILIKE $${values.length} OR role::text ILIKE $${values.length})`
+    );
+  }
+
+  const result = await pool.query(
+    `
+      SELECT COUNT(*)::int AS total
+      FROM auth.users
+      ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
+    `,
+    values
+  );
+
+  return result.rows[0].total;
+};
+
 // --------------------------------------------------
 // AUDIT LOGS
 // --------------------------------------------------
@@ -119,6 +272,7 @@ const listActiveSessions = async (limit = 100) => {
         s.user_id,
         u.email,
         u.role,
+        u.hub_location_id,
         s.ip_address,
         s.device_fingerprint,
         s.expires_at
@@ -170,6 +324,7 @@ const getUserById = async (userId) => {
         is_mfa_active,
         mfa_enrollment_pending,
         admin_locked,
+        token_version,
         failed_login_attempts,
         locked_until,
         created_at
@@ -180,6 +335,88 @@ const getUserById = async (userId) => {
   );
 
   return result.rows[0] || null;
+};
+
+// --------------------------------------------------
+// SESSIONS + AUDIT FOR ONE USER (user detail screen)
+// --------------------------------------------------
+
+const listSessionsByUser = async (userId, limit = 20) => {
+  const result = await pool.query(
+    `
+      SELECT
+        session_id,
+        ip_address,
+        device_fingerprint,
+        expires_at
+      FROM auth.sessions
+      WHERE user_id = $1
+        AND revoked = FALSE
+        AND expires_at > NOW()
+      ORDER BY expires_at DESC
+      LIMIT $2
+    `,
+    [userId, limit]
+  );
+
+  return result.rows;
+};
+
+const getRecentAuditForUser = async (userId, limit = 20) => {
+  const result = await pool.query(
+    `
+      SELECT
+        audit_id,
+        user_id,
+        event_type,
+        email,
+        ip_address,
+        details,
+        created_at
+      FROM auth.audit_logs
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2
+    `,
+    [userId, limit]
+  );
+
+  return result.rows;
+};
+
+// --------------------------------------------------
+// MINTING QUEUE (Super Admin monitor)
+// --------------------------------------------------
+
+const listMintingQueue = async ({ limit = 50, status } = {}) => {
+  const result = await pool.query(
+    `
+      SELECT
+        q.id,
+        q.credential_id,
+        q.status,
+        q.tx_hash,
+        q.attempt_count,
+        q.last_error,
+        q.created_at,
+        q.updated_at,
+        c.status AS credential_status,
+        cand.full_name AS candidate_name,
+        cand.trade_category,
+        cand.testing_hub_id
+      FROM ledger.minting_queue q
+      JOIN ledger.credentials c
+        ON c.credential_id = q.credential_id
+      JOIN candidate.candidates cand
+        ON cand.candidate_id = c.candidate_id
+      WHERE ($2::text IS NULL OR q.status = $2)
+      ORDER BY q.created_at DESC
+      LIMIT $1
+    `,
+    [limit, status || null]
+  );
+
+  return result.rows;
 };
 
 // --------------------------------------------------
@@ -987,7 +1224,11 @@ const resetUserPassword = async (
 module.exports = {
   getDashboardStats,
   listUsers,
+  countUsers,
   getRecentAuditLogs,
+  listSessionsByUser,
+  getRecentAuditForUser,
+  listMintingQueue,
   listActiveSessions,
   revokeSessionById,
   getUserById,

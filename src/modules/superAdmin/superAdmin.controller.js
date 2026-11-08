@@ -63,6 +63,18 @@ const getSessions = async (req, res, next) => {
 };
 
 // --------------------------------------------------
+// MINTING QUEUE MONITOR
+// --------------------------------------------------
+const getMintingQueue = async (req, res, next) => {
+  try {
+    const data = await service.getMintingQueue(req.query);
+    return res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// --------------------------------------------------
 // REVOKE SESSION
 // --------------------------------------------------
 const revokeSession = async (req, res, next) => {
@@ -425,6 +437,7 @@ module.exports = {
   getUserDetails,
   getAuditLogs,
   getSessions,
+  getMintingQueue,
   revokeSession,
   createUser,
   lockUser,
