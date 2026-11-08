@@ -464,7 +464,7 @@ const validateSuperintendent = (user) => {
         throw error;
     }
 
-    if (user.role !== 'CENTER_SUPERINTENDENT') {
+    if (!['CENTER_SUPERINTENDENT', 'SUPERINTENDENT', 'SUPER_ADMIN'].includes(user.role)) {
         const error = new Error(
             'Only Center Superintendents can approve or reject assessments'
         );
@@ -473,8 +473,8 @@ const validateSuperintendent = (user) => {
     }
 
     if (
-        user.hubLocationId === undefined ||
-        user.hubLocationId === null
+        user.role !== 'SUPER_ADMIN' &&
+        (user.hubLocationId === undefined || user.hubLocationId === null)
     ) {
         const error = new Error('Superintendent hub is required');
         error.statusCode = 403;
@@ -487,6 +487,34 @@ const validateSuperintendent = (user) => {
  */
 const getApprovalQueue = async ({ user }) => {
     validateSuperintendent(user);
+
+    if (user.role === 'SUPER_ADMIN') {
+        const pool = require('../../config/db');
+        const result = await pool.query(
+            `
+            SELECT
+                ar.assessment_id,
+                ar.candidate_id,
+                c.full_name,
+                c.trade_category,
+                c.testing_hub_id,
+                ar.score,
+                ar.grade,
+                ar.tester_user_id,
+                ar.superintendent_user_id,
+                ar.status,
+                ar.rejection_reason,
+                ar.submitted_at,
+                ar.approved_at
+            FROM candidate.assessment_records ar
+            INNER JOIN candidate.candidates c
+                ON c.candidate_id = ar.candidate_id
+            WHERE ar.status = 'SUBMITTED'
+            ORDER BY ar.submitted_at ASC
+            `
+        );
+        return result.rows;
+    }
 
     return assessmentModel.findSubmittedForSuperintendent(
         user.hubLocationId
@@ -526,7 +554,7 @@ const approveAssessment = async ({ assessmentId, user }) => {
         throw error;
     }
 
-    if (candidate.testing_hub_id !== user.hubLocationId) {
+    if (user.role !== 'SUPER_ADMIN' && user.hubLocationId && candidate.testing_hub_id !== user.hubLocationId) {
         const error = new Error(
             'Assessment does not belong to your testing hub'
         );
@@ -663,7 +691,7 @@ const rejectAssessment = async ({
         throw error;
     }
 
-    if (candidate.testing_hub_id !== user.hubLocationId) {
+    if (user.role !== 'SUPER_ADMIN' && user.hubLocationId && candidate.testing_hub_id !== user.hubLocationId) {
         const error = new Error(
             'Assessment does not belong to your testing hub'
         );
