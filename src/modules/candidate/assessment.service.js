@@ -349,7 +349,11 @@ const addAssessmentMedia = async ({
  * Get assessment evidence-photo metadata.
  */
 const getAssessmentMedia = async ({ assessmentId, user }) => {
-    validateTester(user);
+    if (!user) {
+        const error = new Error('Authentication required');
+        error.statusCode = 401;
+        throw error;
+    }
 
     const assessment = await assessmentModel.findById(assessmentId);
 
@@ -359,10 +363,22 @@ const getAssessmentMedia = async ({ assessmentId, user }) => {
         throw error;
     }
 
-    if (assessment.tester_user_id !== user.userId) {
-        const error = new Error(
-            'You can only view media for your own assessments'
-        );
+    if (user.role === 'SUPERINTENDENT') {
+        if (assessment.testing_hub_id !== user.hubLocationId) {
+            const error = new Error('You can only view media for assessments in your hub');
+            error.statusCode = 403;
+            throw error;
+        }
+    } else if (user.role === 'TRADE_TESTER') {
+        if (assessment.tester_user_id !== user.userId) {
+            const error = new Error(
+                'You can only view media for your own assessments'
+            );
+            error.statusCode = 403;
+            throw error;
+        }
+    } else if (user.role !== 'SUPER_ADMIN') {
+        const error = new Error('Access denied');
         error.statusCode = 403;
         throw error;
     }

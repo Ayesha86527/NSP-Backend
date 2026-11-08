@@ -94,7 +94,7 @@ router.post(
 router.get(
     '/:assessmentId/media',
     authenticate,
-    requireRole('TRADE_TESTER'),
+    requireRole('TRADE_TESTER', 'SUPERINTENDENT', 'SUPER_ADMIN'),
     assessmentController.getAssessmentMedia
 );
 

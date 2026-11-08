@@ -42,8 +42,8 @@ const enrolCandidate = async ({
         throw error;
     }
 
-    if (user.role !== 'TRADE_TESTER') {
-        const error = new Error('Only Trade Testers can enrol candidates');
+    if (!['TRADE_TESTER', 'SUPERINTENDENT', 'SUPER_ADMIN'].includes(user.role)) {
+        const error = new Error('Only authorized hub staff can enrol candidates');
         error.statusCode = 403;
         throw error;
     }
@@ -95,7 +95,7 @@ const enrolCandidate = async ({
         cnicBlindSalt: blindSalt,
         photoS3Uri,
         tradeCategory,
-        testingHubId: user.hubLocationId
+        testingHubId: user.hubLocationId || 1
     });
 
     return candidate;
@@ -117,7 +117,7 @@ const listCandidatesByHub = async (user) => {
         return res.rows;
     }
 
-    return candidateModel.findByHub(user.hubLocationId);
+    return candidateModel.findByHub(user.hubLocationId || 1);
 };
 
 module.exports = {
