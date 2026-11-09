@@ -42,8 +42,8 @@ const enrolCandidate = async ({
         throw error;
     }
 
-    if (user.role !== 'TRADE_TESTER') {
-        const error = new Error('Only Trade Testers can enrol candidates');
+    if (!['TRADE_TESTER', 'SUPERINTENDENT', 'SUPER_ADMIN'].includes(user.role)) {
+        const error = new Error('Only authorized hub staff can enrol candidates');
         error.statusCode = 403;
         throw error;
     }
@@ -95,12 +95,32 @@ const enrolCandidate = async ({
         cnicBlindSalt: blindSalt,
         photoS3Uri,
         tradeCategory,
-        testingHubId: user.hubLocationId
+        testingHubId: user.hubLocationId || 1
     });
 
     return candidate;
 };
 
+const listCandidatesByHub = async (user) => {
+    if (!user) {
+        const error = new Error('Authentication required');
+        error.statusCode = 401;
+        throw error;
+    }
+
+    if (user.role === 'SUPER_ADMIN') {
+        const pool = require('../../config/db');
+        const res = await pool.query(
+            `SELECT candidate_id, full_name, father_name, dob, photo_s3_uri, trade_category, testing_hub_id
+             FROM candidate.candidates ORDER BY full_name`
+        );
+        return res.rows;
+    }
+
+    return candidateModel.findByHub(user.hubLocationId || 1);
+};
+
 module.exports = {
-    enrolCandidate
+    enrolCandidate,
+    listCandidatesByHub
 };

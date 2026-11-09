@@ -351,7 +351,11 @@ const addAssessmentMedia = async ({
  * Get assessment evidence-photo metadata.
  */
 const getAssessmentMedia = async ({ assessmentId, user }) => {
-    validateTester(user);
+    if (!user) {
+        const error = new Error('Authentication required');
+        error.statusCode = 401;
+        throw error;
+    }
 
     const assessment = await assessmentModel.findById(assessmentId);
 
@@ -361,10 +365,39 @@ const getAssessmentMedia = async ({ assessmentId, user }) => {
         throw error;
     }
 
-    if (assessment.tester_user_id !== user.userId) {
-        const error = new Error(
-            'You can only view media for your own assessments'
+    if (
+        user.role === 'CENTER_SUPERINTENDENT' ||
+        user.role === 'SUPERINTENDENT'
+    ) {
+        // assessment_records has no hub column, so the hub comes
+        // from the candidate the assessment belongs to.
+        const candidate = await candidateModel.findById(
+            assessment.candidate_id
         );
+
+        if (!candidate) {
+            const error = new Error('Candidate not found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (candidate.testing_hub_id !== user.hubLocationId) {
+            const error = new Error(
+                'You can only view media for assessments in your hub'
+            );
+            error.statusCode = 403;
+            throw error;
+        }
+    } else if (user.role === 'TRADE_TESTER') {
+        if (assessment.tester_user_id !== user.userId) {
+            const error = new Error(
+                'You can only view media for your own assessments'
+            );
+            error.statusCode = 403;
+            throw error;
+        }
+    } else if (user.role !== 'SUPER_ADMIN') {
+        const error = new Error('Access denied');
         error.statusCode = 403;
         throw error;
     }
@@ -450,12 +483,11 @@ const validateSuperintendent = (user) => {
         throw error;
     }
 
-    // Super Admins may review and approve across every hub.
-    if (user.role === 'SUPER_ADMIN') {
-        return;
-    }
-
-    if (user.role !== 'CENTER_SUPERINTENDENT') {
+    if (
+        !['CENTER_SUPERINTENDENT', 'SUPERINTENDENT', 'SUPER_ADMIN'].includes(
+            user.role
+        )
+    ) {
         const error = new Error(
             'Only Center Superintendents can approve or reject assessments'
         );
@@ -463,9 +495,10 @@ const validateSuperintendent = (user) => {
         throw error;
     }
 
+    // Super Admins are not tied to a hub; superintendents must have one.
     if (
-        user.hubLocationId === undefined ||
-        user.hubLocationId === null
+        user.role !== 'SUPER_ADMIN' &&
+        (user.hubLocationId === undefined || user.hubLocationId === null)
     ) {
         const error = new Error('Superintendent hub is required');
         error.statusCode = 403;
@@ -492,11 +525,13 @@ const assertCanActOnHub = (user, candidate) => {
 };
 
 /**
- * Get SUBMITTED assessments for the Superintendent's hub.
+ * Get SUBMITTED assessments for the Superintendent's hub
+ * (all hubs for a Super Admin).
  */
 const getApprovalQueue = async ({ user }) => {
     validateSuperintendent(user);
 
+    // Super Admins see SUBMITTED assessments from every hub.
     return assessmentModel.findSubmittedForSuperintendent(
         user.role === 'SUPER_ADMIN' ? null : user.hubLocationId
     );

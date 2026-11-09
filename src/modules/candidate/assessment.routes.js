@@ -20,21 +20,21 @@ const router = express.Router();
 router.get(
     '/queue',
     authenticate,
-    requireRole('CENTER_SUPERINTENDENT', 'SUPER_ADMIN'),
+    requireRole('CENTER_SUPERINTENDENT', 'SUPERINTENDENT', 'SUPER_ADMIN'),
     assessmentController.getApprovalQueue
 );
 
 router.post(
     '/:assessmentId/approve',
     authenticate,
-    requireRole('CENTER_SUPERINTENDENT', 'SUPER_ADMIN'),
+    requireRole('CENTER_SUPERINTENDENT', 'SUPERINTENDENT', 'SUPER_ADMIN'),
     assessmentController.approveAssessment
 );
 
 router.post(
     '/:assessmentId/reject',
     authenticate,
-    requireRole('CENTER_SUPERINTENDENT', 'SUPER_ADMIN'),
+    requireRole('CENTER_SUPERINTENDENT', 'SUPERINTENDENT', 'SUPER_ADMIN'),
     assessmentController.rejectAssessment
 );
 
@@ -94,7 +94,12 @@ router.post(
 router.get(
     '/:assessmentId/media',
     authenticate,
-    requireRole('TRADE_TESTER'),
+    requireRole(
+        'TRADE_TESTER',
+        'CENTER_SUPERINTENDENT',
+        'SUPERINTENDENT',
+        'SUPER_ADMIN'
+    ),
     assessmentController.getAssessmentMedia
 );
 
