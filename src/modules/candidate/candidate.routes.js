@@ -12,14 +12,14 @@ const router = express.Router();
 router.post(
     '/photo-upload-url',
     authenticate,
-    requireRole('TRADE_TESTER', 'SUPERINTENDENT', 'SUPER_ADMIN'),
+    requireRole('TRADE_TESTER', 'CENTER_SUPERINTENDENT', 'SUPERINTENDENT', 'SUPER_ADMIN'),
     candidateController.createPhotoUploadUrl
 );
 
 router.post(
     '/',
     authenticate,
-    requireRole('TRADE_TESTER', 'SUPERINTENDENT', 'SUPER_ADMIN'),
+    requireRole('TRADE_TESTER', 'CENTER_SUPERINTENDENT', 'SUPERINTENDENT', 'SUPER_ADMIN'),
     candidateController.enrolCandidate
 );
 

@@ -42,7 +42,10 @@ const enrolCandidate = async ({
         throw error;
     }
 
-    if (!['TRADE_TESTER', 'SUPERINTENDENT', 'SUPER_ADMIN'].includes(user.role)) {
+    if (
+        !['TRADE_TESTER', 'CENTER_SUPERINTENDENT', 'SUPERINTENDENT', 'SUPER_ADMIN']
+            .includes(user.role)
+    ) {
         const error = new Error('Only authorized hub staff can enrol candidates');
         error.statusCode = 403;
         throw error;

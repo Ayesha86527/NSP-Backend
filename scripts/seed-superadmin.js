@@ -14,21 +14,30 @@ async function seedSuperAdmin() {
   );
 
   if (existing.rowCount > 0) {
+    // Re-running this script must NOT silently wipe a working MFA setup:
+    // that forces a brand-new QR scan at the next login. MFA is reset only
+    // when explicitly requested:  node scripts/seed-superadmin.js --reset-mfa
+    const resetMfa = process.argv.includes('--reset-mfa');
+
     await pool.query(
-      `UPDATE auth.users 
-       SET password_hash = $1, 
-           role = 'SUPER_ADMIN', 
-           is_active = true, 
-           admin_locked = false, 
-           is_mfa_active = false,
-           mfa_enrollment_pending = true,
+      `UPDATE auth.users
+       SET password_hash = $1,
+           role = 'SUPER_ADMIN',
+           is_active = true,
+           admin_locked = false,
            failed_login_attempts = 0,
            locked_until = null,
-           mfa_locked_until = null
+           mfa_locked_until = null,
+           is_mfa_active = CASE WHEN $3 THEN false ELSE is_mfa_active END,
+           mfa_enrollment_pending = CASE WHEN $3 THEN true ELSE mfa_enrollment_pending END
        WHERE email = $2`,
-      [hash, ADMIN_EMAIL]
+      [hash, ADMIN_EMAIL, resetMfa]
     );
-    console.log('✅ Super Admin account updated successfully!');
+    console.log(
+      resetMfa
+        ? '✅ Super Admin updated and MFA reset (new QR scan required).'
+        : '✅ Super Admin password/status updated. MFA left unchanged.'
+    );
   } else {
     await pool.query(
       `INSERT INTO auth.users (
@@ -52,7 +61,7 @@ async function seedSuperAdmin() {
   console.log('Email:    ', ADMIN_EMAIL);
   console.log('Password: ', ADMIN_PASSWORD);
   console.log('Role:      SUPER_ADMIN');
-  console.log('MFA:       Enrollment required on first login (QR Code)');
+  console.log('MFA:       QR enrollment on first login only (use --reset-mfa to force again)');
   console.log('--------------------------------------------------');
   
   await pool.end();
