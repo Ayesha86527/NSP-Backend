@@ -21,8 +21,19 @@ const createAuditLogSafely = async (entry) => {
 };
 
 /**
- * Validate that the current user is an authenticated Trade Tester.
+ * Validate that the current user may create and manage assessments:
+ * a Trade Tester, a Center Superintendent or a Super Admin.
+ *
+ * Trade Testers and Superintendents must belong to a hub.
+ * Super Admins are not tied to a hub.
  */
+const ASSESSOR_ROLES = [
+    'TRADE_TESTER',
+    'CENTER_SUPERINTENDENT',
+    'SUPERINTENDENT',
+    'SUPER_ADMIN'
+];
+
 const validateTester = (user) => {
     if (!user) {
         const error = new Error('Authentication required');
@@ -30,14 +41,30 @@ const validateTester = (user) => {
         throw error;
     }
 
-    if (user.role !== 'TRADE_TESTER') {
+    if (!ASSESSOR_ROLES.includes(user.role)) {
         const error = new Error(
-            'Only Trade Testers can manage assessments'
+            'Only Trade Testers, Superintendents and Super Admins can manage assessments'
         );
         error.statusCode = 403;
         throw error;
     }
+
+    if (
+        user.role !== 'SUPER_ADMIN' &&
+        (user.hubLocationId === undefined || user.hubLocationId === null)
+    ) {
+        const error = new Error('A testing hub is required');
+        error.statusCode = 403;
+        throw error;
+    }
 };
+
+/**
+ * Hub scope: Super Admins reach every hub, everyone else only their own.
+ */
+const isInUserScope = (user, candidate) =>
+    user.role === 'SUPER_ADMIN' ||
+    candidate.testing_hub_id === user.hubLocationId;
 
 /**
  * Validate score and grade.
@@ -98,7 +125,7 @@ const createAssessment = async ({
         throw error;
     }
 
-    if (candidate.testing_hub_id !== user.hubLocationId) {
+    if (!isInUserScope(user, candidate)) {
         const error = new Error(
             'Candidate does not belong to your testing hub'
         );
@@ -168,7 +195,7 @@ const getAssessment = async ({ assessmentId, user }) => {
             throw error;
         }
 
-        if (candidate.testing_hub_id !== user.hubLocationId) {
+        if (!isInUserScope(user, candidate)) {
             const error = new Error('Access denied');
             error.statusCode = 403;
             throw error;
@@ -464,12 +491,24 @@ const submitAssessment = async ({ assessmentId, user }) => {
 };
 
 /**
- * Get assessments belonging to the logged-in Trade Tester.
+ * List assessments for the logged-in user (GET /api/assessments).
+ *
+ * - Trade Tester: only their own assessments.
+ * - Center Superintendent: every assessment in their hub.
+ * - Super Admin: every assessment in every hub.
  */
 const getMyAssessments = async ({ user }) => {
     validateTester(user);
 
-    return assessmentModel.findByTester(user.userId);
+    if (user.role === 'SUPER_ADMIN') {
+        return assessmentModel.findByHub(null);
+    }
+
+    if (user.role === 'TRADE_TESTER') {
+        return assessmentModel.findByTester(user.userId);
+    }
+
+    return assessmentModel.findByHub(user.hubLocationId);
 };
 
 /**

@@ -1,4 +1,3 @@
-
 const pool = require('../../config/db');
 
 const createCandidate = async ({
@@ -108,6 +107,32 @@ const findByDedupHash = async (cnicDedupHash) => {
     return result.rows[0] || null;
 };
 
+/**
+ * Find candidates by one or more CNIC dedup hashes.
+ * hubId = null searches every hub (Super Admin).
+ */
+const findByDedupHashes = async (cnicDedupHashes, hubId = null) => {
+    const result = await pool.query(
+        `
+        SELECT
+            candidate_id,
+            full_name,
+            father_name,
+            dob,
+            photo_s3_uri,
+            trade_category,
+            testing_hub_id
+        FROM candidate.candidates
+        WHERE cnic_dedup_hash = ANY($1::text[])
+          AND ($2::int IS NULL OR testing_hub_id = $2)
+        ORDER BY full_name
+        `,
+        [cnicDedupHashes, hubId]
+    );
+
+    return result.rows;
+};
+
 const findById = async (candidateId) => {
     const result = await pool.query(
         `
@@ -166,6 +191,7 @@ const findByHub = async (testingHubId) => {
 module.exports = {
     createCandidate,
     findByDedupHash,
+    findByDedupHashes,
     findById,
     findByIdInHub,
     findByHub

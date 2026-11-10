@@ -152,6 +152,39 @@ const findByTester = async (testerUserId) => {
     return result.rows;
 };
 
+/**
+ * List assessments with candidate details.
+ * hubId = null returns every hub (Super Admin).
+ */
+const findByHub = async (hubId) => {
+    const result = await pool.query(
+        `
+        SELECT
+            ar.assessment_id,
+            ar.candidate_id,
+            c.full_name,
+            c.trade_category,
+            c.testing_hub_id,
+            ar.score,
+            ar.grade,
+            ar.tester_user_id,
+            ar.superintendent_user_id,
+            ar.status,
+            ar.rejection_reason,
+            ar.submitted_at,
+            ar.approved_at
+        FROM candidate.assessment_records ar
+        INNER JOIN candidate.candidates c
+            ON c.candidate_id = ar.candidate_id
+        WHERE ($1::int IS NULL OR c.testing_hub_id = $1)
+        ORDER BY ar.submitted_at DESC NULLS LAST, ar.assessment_id DESC
+        `,
+        [hubId]
+    );
+
+    return result.rows;
+};
+
 const updateDraft = async ({
     assessmentId,
     score,
@@ -339,6 +372,7 @@ module.exports = {
     findById,
     findByCandidateAndTester,
     findByTester,
+    findByHub,
     updateDraft,
     submitDraft,
     findByClientRequestId,

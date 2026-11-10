@@ -10,6 +10,17 @@ const {
 
 const router = express.Router();
 
+/*
+ * Roles that may create and manage assessments. Superintendents work
+ * inside their own hub; Super Admins are not limited to a hub.
+ */
+const ASSESSORS = [
+    'TRADE_TESTER',
+    'CENTER_SUPERINTENDENT',
+    'SUPERINTENDENT',
+    'SUPER_ADMIN'
+];
+
 
 /*
  * Superintendent approval workflow.
@@ -40,54 +51,54 @@ router.post(
 
 
 /*
- * Trade Tester assessment workflow.
+ * Assessment workflow (Trade Tester, Superintendent, Super Admin).
  */
 router.post(
     '/',
     authenticate,
-    requireRole('TRADE_TESTER'),
+    requireRole(...ASSESSORS),
     assessmentController.createAssessment
 );
 
 router.get(
     '/',
     authenticate,
-    requireRole('TRADE_TESTER'),
+    requireRole(...ASSESSORS),
     assessmentController.getMyAssessments
 );
 
 router.get(
     '/:assessmentId',
     authenticate,
-    requireRole('TRADE_TESTER'),
+    requireRole(...ASSESSORS),
     assessmentController.getAssessment
 );
 
 router.patch(
     '/:assessmentId',
     authenticate,
-    requireRole('TRADE_TESTER'),
+    requireRole(...ASSESSORS),
     assessmentController.updateAssessment
 );
 
 router.post(
     '/:assessmentId/submit',
     authenticate,
-    requireRole('TRADE_TESTER'),
+    requireRole(...ASSESSORS),
     assessmentController.submitAssessment
 );
 
 router.post(
     '/:assessmentId/photo-upload-url',
     authenticate,
-    requireRole('TRADE_TESTER'),
+    requireRole(...ASSESSORS),
     assessmentController.createAssessmentPhotoUploadUrl
 );
 
 router.post(
     '/:assessmentId/media',
     authenticate,
-    requireRole('TRADE_TESTER'),
+    requireRole(...ASSESSORS),
     assessmentController.addAssessmentMedia
 );
 

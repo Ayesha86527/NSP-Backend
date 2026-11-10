@@ -37,8 +37,43 @@ const createPhotoUploadUrl = async (req, res, next) => {
     }
 };
 
+const lookupCandidate = async (req, res, next) => {
+    try {
+        const body = req.body || {};
+
+        const candidates = await candidateService.lookupCandidateByCnic({
+            cnic: body.cnic,
+            user: req.user
+        });
+
+        return res.status(200).json({
+            success: true,
+            found: candidates.length > 0,
+            candidates
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const listCandidates = async (req, res, next) => {
     try {
+        // GET /api/candidates?cnic=3520212345671 -> CNIC lookup.
+        // (POST /api/candidates/lookup is preferred: it keeps the CNIC
+        // out of URLs and access logs.)
+        if (req.query && req.query.cnic) {
+            const matches = await candidateService.lookupCandidateByCnic({
+                cnic: req.query.cnic,
+                user: req.user
+            });
+
+            return res.status(200).json({
+                success: true,
+                found: matches.length > 0,
+                candidates: matches
+            });
+        }
+
         const candidates = await candidateService.listCandidatesByHub(req.user);
         return res.status(200).json({
             success: true,
@@ -52,5 +87,6 @@ const listCandidates = async (req, res, next) => {
 module.exports = {
     enrolCandidate,
     createPhotoUploadUrl,
-    listCandidates
+    listCandidates,
+    lookupCandidate
 };
