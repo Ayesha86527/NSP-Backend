@@ -67,19 +67,102 @@ const isInUserScope = (user, candidate) =>
     candidate.testing_hub_id === user.hubLocationId;
 
 /**
- * Validate score and grade.
+ * Score/grade rules. The database column is NUMERIC(5,2) and
+ * VARCHAR(10); anything outside that used to crash with a raw
+ * database error (HTTP 500). Reject it with a clear 400 instead.
+ */
+const MIN_SCORE = 0;
+const MAX_SCORE = 100; // change here if your marking scale is different
+const MAX_GRADE_LENGTH = 10;
+
+const badRequest = (message) => {
+    const error = new Error(message);
+    error.statusCode = 400;
+    return error;
+};
+
+/**
+ * PostgreSQL rejects malformed input (22P02 invalid text/uuid/number,
+ * 22003 numeric overflow, 22001 value too long). Report those as a
+ * client error instead of an HTTP 500.
+ */
+const asClientError = (error) => {
+    if (error && ['22P02', '22003', '22001'].includes(error.code)) {
+        return badRequest(
+            'Invalid input: clientRequestId must be a valid UUID and ' +
+            'score/grade must fit the allowed format'
+        );
+    }
+
+    return error;
+};
+
+const isBlank = (value) =>
+    value === undefined ||
+    value === null ||
+    (typeof value === 'string' && value.trim() === '');
+
+const normalizeScore = (score) => {
+    const value = typeof score === 'string' ? Number(score.trim()) : score;
+
+    if (
+        typeof value !== 'number' ||
+        !Number.isFinite(value) ||
+        value < MIN_SCORE ||
+        value > MAX_SCORE
+    ) {
+        throw badRequest(
+            `Score must be a number between ${MIN_SCORE} and ${MAX_SCORE}`
+        );
+    }
+
+    // The column keeps two decimal places.
+    return Math.round(value * 100) / 100;
+};
+
+const normalizeGrade = (grade) => {
+    if (typeof grade !== 'string' || !grade.trim()) {
+        throw badRequest('Grade must be a non-empty text value');
+    }
+
+    const value = grade.trim();
+
+    if (value.length > MAX_GRADE_LENGTH) {
+        throw badRequest(
+            `Grade must be at most ${MAX_GRADE_LENGTH} characters`
+        );
+    }
+
+    return value;
+};
+
+/**
+ * Validate and normalise score and grade (both required).
  */
 const validateAssessmentInput = ({ score, grade }) => {
-    if (
-        score === undefined ||
-        score === null ||
-        grade === undefined ||
-        !grade
-    ) {
-        const error = new Error('Score and grade are required');
-        error.statusCode = 400;
-        throw error;
+    if (isBlank(score) || isBlank(grade)) {
+        throw badRequest('Score and grade are required');
     }
+
+    return {
+        score: normalizeScore(score),
+        grade: normalizeGrade(grade)
+    };
+};
+
+/**
+ * Validate a partial draft update: at least one of score/grade,
+ * and whichever is supplied must be valid.
+ */
+const validatePartialAssessmentInput = ({ score, grade }) => {
+    if (isBlank(score) && isBlank(grade)) {
+        throw badRequest('Provide a score, a grade, or both');
+    }
+
+    return {
+        score: isBlank(score) ? undefined : normalizeScore(score),
+        grade: isBlank(grade) ? undefined : normalizeGrade(grade)
+    };
 };
 
 /**
@@ -96,7 +179,10 @@ const createAssessment = async ({
     user
 }) => {
     validateTester(user);
-    validateAssessmentInput({ score, grade });
+
+    const cleaned = validateAssessmentInput({ score, grade });
+    score = cleaned.score;
+    grade = cleaned.grade;
 
     if (!clientRequestId) {
         const error = new Error('clientRequestId is required');
@@ -104,11 +190,17 @@ const createAssessment = async ({
         throw error;
     }
 
-    const existingAssessment =
-        await assessmentModel.findByClientRequestId({
-            testerUserId: user.userId,
-            clientRequestId
-        });
+    let existingAssessment;
+
+    try {
+        existingAssessment =
+            await assessmentModel.findByClientRequestId({
+                testerUserId: user.userId,
+                clientRequestId
+            });
+    } catch (error) {
+        throw asClientError(error);
+    }
 
     if (existingAssessment) {
         return {
@@ -164,7 +256,7 @@ const createAssessment = async ({
             }
         }
 
-        throw error;
+        throw asClientError(error);
     }
 };
 
@@ -215,7 +307,12 @@ const updateAssessment = async ({
     user
 }) => {
     validateTester(user);
-    validateAssessmentInput({ score, grade });
+
+    // Autosave-friendly: a draft can be updated with just a score,
+    // just a grade, or both.
+    const cleaned = validatePartialAssessmentInput({ score, grade });
+    score = cleaned.score;
+    grade = cleaned.grade;
 
     const assessment = await assessmentModel.findById(assessmentId);
 
