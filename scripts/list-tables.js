@@ -1,14 +1,14 @@
-const { Pool } = require('pg');
-
+require('dotenv').config();
+const pool=require('../src/config/db.js')
 
 
 async function listTables() {
   try {
     const res = await pool.query(`
-      SELECT table_schema, table_name 
-      FROM information_schema.tables 
-      WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
-      ORDER BY table_schema, table_name;
+      SELECT column_name, data_type
+        FROM information_schema.columns
+        WHERE table_schema = 'candidate' AND table_name = 'candidates'
+        ORDER BY ordinal_position;
     `);
     console.log(' Database Tables:');
     console.table(res.rows);

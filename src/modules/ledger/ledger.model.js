@@ -269,7 +269,6 @@ const revokeCredential = async (credentialId, reason, revokedBy) => {
     try {
         await client.query('BEGIN');
 
-
         const checkResult = await client.query(
             `
             SELECT * FROM ledger.credentials
@@ -288,7 +287,6 @@ const revokeCredential = async (credentialId, reason, revokedBy) => {
             throw createLedgerError('Credential is already revoked.', 409);
         }
 
-        // 2. Update credential status to REVOKED
         const updateResult = await client.query(
             `
             UPDATE ledger.credentials
@@ -299,7 +297,6 @@ const revokeCredential = async (credentialId, reason, revokedBy) => {
             `,
             [credentialId]
         );
-
 
         console.log(`Credential ${credentialId} revoked by user ${revokedBy}. Reason: ${reason}`);
 
@@ -312,14 +309,39 @@ const revokeCredential = async (credentialId, reason, revokedBy) => {
         client.release();
     }
 };
+
 const getCredentialByStringId = async (credentialId) => {
     const query = `
-        SELECT * FROM ledger.credentials
-        WHERE credential_id = $1;
+        SELECT 
+            c.credential_id,
+            c.candidate_id,
+            c.credential_subject,
+            c.root_hash,
+            c.issued_at,
+            c.approved_at,
+            c.status,
+            mq.tx_hash,
+            cand.full_name      AS worker_name,
+            cand.trade_category AS trade_category,
+            cand.testing_hub_id AS testing_hub_id
+        FROM ledger.credentials c
+        LEFT JOIN LATERAL (
+            SELECT tx_hash
+            FROM ledger.minting_queue
+            WHERE credential_id = c.credential_id
+              AND status = 'MINTED'
+            ORDER BY created_at DESC
+            LIMIT 1
+        ) mq ON true
+        LEFT JOIN candidate.candidates cand
+            ON cand.candidate_id = c.candidate_id
+        WHERE c.credential_id = $1
+        LIMIT 1;
     `;
-    const result = await pool.query(query, [credentialId]);
-    return result.rows[0];
+    const { rows } = await pool.query(query, [credentialId]);
+    return rows[0] || null;
 };
+
 const getQueueHealthStats = async () => {
     const query = `
         SELECT 
@@ -331,6 +353,7 @@ const getQueueHealthStats = async () => {
     const result = await pool.query(query);
     return result.rows;
 };
+
 module.exports = {
     createCredential,
     approveAndQueueCredential,

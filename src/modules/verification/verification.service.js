@@ -3,20 +3,18 @@ const ledgerModule = require('../ledger/ledger.model.js');
 const { ethers } = require('ethers');
 const { getReadOnlyContractInstance } = require('../ledger/blockchain/contract');
 
-const CACHE_TTL = 60;          
-const NEGATIVE_CACHE_TTL = 10; 
+const CACHE_TTL = 60;
+const NEGATIVE_CACHE_TTL = 10;
 
 const verifyCredentialOnChain = async (credentialId) => {
     const cacheKey = `verify:${credentialId}`;
 
     try {
-        
         const cachedResult = await redis.get(cacheKey);
         if (cachedResult) {
             return JSON.parse(cachedResult);
         }
 
-       
         const credential = await ledgerModule.getCredentialByStringId(credentialId);
         if (!credential) {
             return {
@@ -26,7 +24,6 @@ const verifyCredentialOnChain = async (credentialId) => {
             };
         }
 
-       
         if (credential.status === 'REVOKED') {
             const revokedResponse = {
                 success: true,
@@ -37,7 +34,6 @@ const verifyCredentialOnChain = async (credentialId) => {
             await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(revokedResponse));
             return revokedResponse;
         }
-
 
         const contract = getReadOnlyContractInstance();
         const certIdBytes32 = ethers.id(credentialId);
@@ -61,19 +57,39 @@ const verifyCredentialOnChain = async (credentialId) => {
                 message: 'On-chain hash does not match local metadata root hash.'
             };
         } else {
+            const subject = credential.credential_subject?.credentialSubject || {};
+
             verificationResult = {
                 success: true,
                 verified: true,
                 status: 'VALID',
                 data: {
                     credentialId,
+                    candidateId: credential.candidate_id,
+
+                    workerName: credential.worker_name || null,
+                    skillTrade: subject.skillName || credential.trade_category || null,
+                    assessmentResult: (subject.grade || subject.score)
+                        ? `Grade ${subject.grade ?? '-'} (${subject.score ?? '-'}%)`
+                        : null,
+                    testingCentre: credential.testing_hub_id
+                        ? `Testing Hub #${credential.testing_hub_id}`
+                        : null,
+
+                    credentialStatus: credential.status,
                     issuedAt: new Date(Number(issuedAt) * 1000).toISOString(),
-                    onChainHash
+                    approvedAt: credential.approved_at,
+                    onChainHash,
+                    txHash: credential.tx_hash || null,
+                    explorerUrl: credential.tx_hash
+                        ? `https://amoy.polygonscan.com/tx/${credential.tx_hash}`
+                        : null,
+                    ledger: 'Polygon Amoy Testnet (Smart Contract Direct Verification)',
+                    credentialSubject: credential.credential_subject || null
                 }
             };
         }
 
-        
         const ttl = verificationResult.status === 'VALID' ? CACHE_TTL : NEGATIVE_CACHE_TTL;
         await redis.setex(cacheKey, ttl, JSON.stringify(verificationResult));
 
@@ -83,7 +99,6 @@ const verifyCredentialOnChain = async (credentialId) => {
         throw error;
     }
 };
-
 module.exports = {
     verifyCredentialOnChain
 };
