@@ -322,8 +322,13 @@ const getCredentialByStringId = async (credentialId) => {
             c.status,
             mq.tx_hash,
             cand.full_name      AS worker_name,
+            cand.father_name    AS father_name,
+            cand.dob            AS dob,
             cand.trade_category AS trade_category,
-            cand.testing_hub_id AS testing_hub_id
+            cand.testing_hub_id AS testing_hub_id,
+            cand.photo_s3_uri   AS photo_s3_uri,
+            ar.score            AS assessment_score,
+            ar.grade            AS assessment_grade
         FROM ledger.credentials c
         LEFT JOIN LATERAL (
             SELECT tx_hash
@@ -335,6 +340,13 @@ const getCredentialByStringId = async (credentialId) => {
         ) mq ON true
         LEFT JOIN candidate.candidates cand
             ON cand.candidate_id = c.candidate_id
+        LEFT JOIN LATERAL (
+            SELECT score, grade
+            FROM candidate.assessment_records
+            WHERE candidate_id = c.candidate_id
+            ORDER BY approved_at DESC NULLS LAST
+            LIMIT 1
+        ) ar ON true
         WHERE c.credential_id = $1
         LIMIT 1;
     `;

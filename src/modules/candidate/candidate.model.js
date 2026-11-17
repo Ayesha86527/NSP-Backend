@@ -137,15 +137,24 @@ const findById = async (candidateId) => {
     const result = await pool.query(
         `
         SELECT
-            candidate_id,
-            full_name,
-            father_name,
-            dob,
-            photo_s3_uri,
-            trade_category,
-            testing_hub_id
-        FROM candidate.candidates
-        WHERE candidate_id = $1
+            c.candidate_id,
+            c.full_name,
+            c.father_name,
+            c.dob,
+            c.photo_s3_uri,
+            c.trade_category,
+            c.testing_hub_id,
+            cred.credential_id,
+            cred.status AS credential_status
+        FROM candidate.candidates c
+        LEFT JOIN LATERAL (
+            SELECT credential_id, status
+            FROM ledger.credentials
+            WHERE candidate_id = c.candidate_id
+            ORDER BY issued_at DESC
+            LIMIT 1
+        ) cred ON true
+        WHERE c.candidate_id = $1
         `,
         [candidateId]
     );
@@ -171,16 +180,25 @@ const findByHub = async (testingHubId) => {
     const result = await pool.query(
         `
         SELECT
-            candidate_id,
-            full_name,
-            father_name,
-            dob,
-            photo_s3_uri,
-            trade_category,
-            testing_hub_id
-        FROM candidate.candidates
-        WHERE testing_hub_id = $1
-        ORDER BY full_name
+            c.candidate_id,
+            c.full_name,
+            c.father_name,
+            c.dob,
+            c.photo_s3_uri,
+            c.trade_category,
+            c.testing_hub_id,
+            cred.credential_id,
+            cred.status AS credential_status
+        FROM candidate.candidates c
+        LEFT JOIN LATERAL (
+            SELECT credential_id, status
+            FROM ledger.credentials
+            WHERE candidate_id = c.candidate_id
+            ORDER BY issued_at DESC
+            LIMIT 1
+        ) cred ON true
+        WHERE ($1::int IS NULL OR c.testing_hub_id = $1)
+        ORDER BY c.full_name
         `,
         [testingHubId]
     );

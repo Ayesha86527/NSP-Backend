@@ -78,18 +78,27 @@ const findById = async (assessmentId) => {
     const result = await pool.query(
         `
         SELECT
-            assessment_id,
-            candidate_id,
-            score,
-            grade,
-            tester_user_id,
-            superintendent_user_id,
-            status,
-            rejection_reason,
-            submitted_at,
-            approved_at
-        FROM candidate.assessment_records
-        WHERE assessment_id = $1
+            ar.assessment_id,
+            ar.candidate_id,
+            ar.score,
+            ar.grade,
+            ar.tester_user_id,
+            ar.superintendent_user_id,
+            ar.status,
+            ar.rejection_reason,
+            ar.submitted_at,
+            ar.approved_at,
+            cred.credential_id,
+            cred.status AS credential_status
+        FROM candidate.assessment_records ar
+        LEFT JOIN LATERAL (
+            SELECT credential_id, status
+            FROM ledger.credentials
+            WHERE candidate_id = ar.candidate_id
+            ORDER BY issued_at DESC
+            LIMIT 1
+        ) cred ON true
+        WHERE ar.assessment_id = $1
         `,
         [assessmentId]
     );
@@ -132,19 +141,28 @@ const findByTester = async (testerUserId) => {
     const result = await pool.query(
         `
         SELECT
-            assessment_id,
-            candidate_id,
-            score,
-            grade,
-            tester_user_id,
-            superintendent_user_id,
-            status,
-            rejection_reason,
-            submitted_at,
-            approved_at
-        FROM candidate.assessment_records
-        WHERE tester_user_id = $1
-        ORDER BY submitted_at DESC NULLS LAST, assessment_id DESC
+            ar.assessment_id,
+            ar.candidate_id,
+            ar.score,
+            ar.grade,
+            ar.tester_user_id,
+            ar.superintendent_user_id,
+            ar.status,
+            ar.rejection_reason,
+            ar.submitted_at,
+            ar.approved_at,
+            cred.credential_id,
+            cred.status AS credential_status
+        FROM candidate.assessment_records ar
+        LEFT JOIN LATERAL (
+            SELECT credential_id, status
+            FROM ledger.credentials
+            WHERE candidate_id = ar.candidate_id
+            ORDER BY issued_at DESC
+            LIMIT 1
+        ) cred ON true
+        WHERE ar.tester_user_id = $1
+        ORDER BY ar.submitted_at DESC NULLS LAST, ar.assessment_id DESC
         `,
         [testerUserId]
     );
@@ -172,10 +190,19 @@ const findByHub = async (hubId) => {
             ar.status,
             ar.rejection_reason,
             ar.submitted_at,
-            ar.approved_at
+            ar.approved_at,
+            cred.credential_id,
+            cred.status AS credential_status
         FROM candidate.assessment_records ar
         INNER JOIN candidate.candidates c
             ON c.candidate_id = ar.candidate_id
+        LEFT JOIN LATERAL (
+            SELECT credential_id, status
+            FROM ledger.credentials
+            WHERE candidate_id = ar.candidate_id
+            ORDER BY issued_at DESC
+            LIMIT 1
+        ) cred ON true
         WHERE ($1::int IS NULL OR c.testing_hub_id = $1)
         ORDER BY ar.submitted_at DESC NULLS LAST, ar.assessment_id DESC
         `,

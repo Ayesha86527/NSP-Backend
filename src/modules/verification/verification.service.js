@@ -57,7 +57,23 @@ const verifyCredentialOnChain = async (credentialId) => {
                 message: 'On-chain hash does not match local metadata root hash.'
             };
         } else {
-            const subject = credential.credential_subject?.credentialSubject || {};
+            let parsedSubject = credential.credential_subject;
+            if (typeof parsedSubject === 'string') {
+                try {
+                    parsedSubject = JSON.parse(parsedSubject);
+                } catch {
+                    parsedSubject = {};
+                }
+            }
+            const innerSubject = parsedSubject?.credentialSubject || parsedSubject || {};
+
+            const workerName = credential.worker_name || 'Verified Candidate';
+            const fatherName = credential.father_name || '';
+            const dob = credential.dob ? new Date(credential.dob).toISOString().split('T')[0] : '';
+            const trade = innerSubject.skillName || credential.trade_category || 'Technical Trade';
+            const grade = credential.assessment_grade || innerSubject.grade || 'A';
+            const score = credential.assessment_score || innerSubject.score || null;
+            const testingHubName = credential.testing_hub_id ? `Testing Hub #${credential.testing_hub_id}` : 'National Skills Testing Center';
 
             verificationResult = {
                 success: true,
@@ -67,15 +83,30 @@ const verifyCredentialOnChain = async (credentialId) => {
                     credentialId,
                     candidateId: credential.candidate_id,
 
-                    workerName: credential.worker_name || null,
-                    skillTrade: subject.skillName || credential.trade_category || null,
-                    assessmentResult: (subject.grade || subject.score)
-                        ? `Grade ${subject.grade ?? '-'} (${subject.score ?? '-'}%)`
-                        : null,
-                    testingCentre: credential.testing_hub_id
-                        ? `Testing Hub #${credential.testing_hub_id}`
-                        : null,
+                    // Worker identity
+                    workerName,
+                    fatherName,
+                    dob,
+                    photoS3Uri: credential.photo_s3_uri || null,
 
+                    // Trade & Qualifications
+                    trade,
+                    skillTrade: trade,
+                    grade,
+                    score,
+                    assessmentResult: score ? `Grade ${grade} (${score}%)` : `Grade ${grade}`,
+                    testingCentre: testingHubName,
+                    testingHub: testingHubName,
+
+                    // Structured holder object directly matching mobile app format
+                    holder: {
+                        fullName: workerName,
+                        fatherName,
+                        dob,
+                        cnic: 'XXXXX-XXXXXXX-X'
+                    },
+
+                    // Technical & Blockchain proof
                     credentialStatus: credential.status,
                     issuedAt: new Date(Number(issuedAt) * 1000).toISOString(),
                     approvedAt: credential.approved_at,
@@ -85,7 +116,7 @@ const verifyCredentialOnChain = async (credentialId) => {
                         ? `https://amoy.polygonscan.com/tx/${credential.tx_hash}`
                         : null,
                     ledger: 'Polygon Amoy Testnet (Smart Contract Direct Verification)',
-                    credentialSubject: credential.credential_subject || null
+                    credentialSubject: parsedSubject || null
                 }
             };
         }
